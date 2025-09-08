@@ -26,8 +26,16 @@ public class GlucoseService {
         return repository.findOverallAverageGlucose();
     }
 
-    public Double getTodayAverage() {
+    public Double getGlucoseManagementIndicator() {
+        Double average = getOverallAverageGlucose();
+        return (3.31 + 0.02392) * average;
+    }
 
+    public Double getGlucoseStandardDeviation(){
+        return repository.findStandardDeviation();
+    }
+
+    public Double getTodayAverage() {
         Instant startOfDay = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant();
         Instant endOfDay = LocalDate.now().atTime(LocalTime.MAX).atZone(ZoneId.systemDefault()).toInstant();
         return repository.findAverageReadingValueForToday(Date.from(startOfDay), Date.from(endOfDay));

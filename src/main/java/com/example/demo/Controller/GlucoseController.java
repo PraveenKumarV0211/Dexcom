@@ -44,5 +44,24 @@ public class GlucoseController {
         }
         return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
     }
+
+    @GetMapping(value = "/getGMI")
+    public ResponseEntity<Double> getGMI() {
+        Double glucoseManagementIndicator = glucoseService.getGlucoseManagementIndicator();
+        if (glucoseManagementIndicator != null) {
+            return new ResponseEntity<>(glucoseManagementIndicator, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+    }
+
+    @GetMapping(value = "/getStandardDeviation")
+    public ResponseEntity<Double> getStandardDeviation() {
+        Double standardDeviation = glucoseService.getGlucoseStandardDeviation();
+        if (standardDeviation != null) {
+            return new ResponseEntity<>(standardDeviation, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+    }
+
 }
 
