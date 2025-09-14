@@ -9,6 +9,8 @@ import java.util.Date;
 @Data
 @Document(collection = "Dexcom_Data")
 public class Glucose {
+
+    @JsonProperty("DateTime")
     Date DateTime;
     @JsonProperty("Glucose")
     Integer Glucose;

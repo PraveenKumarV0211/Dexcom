@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -34,6 +35,15 @@ public class GlucoseController {
             return new ResponseEntity<>(currentDayAverage, HttpStatus.OK);
         }
         return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+    }
+
+    @GetMapping(value = "/glucoseByDuration")
+    public ResponseEntity<List<Glucose>> getGlucoseByDuration(@RequestParam(value = "hours", defaultValue = "24") Integer hours) {
+        List<Glucose> glucoseValues = glucoseService.getReadingsByDuration(hours);
+        if (glucoseValues.isEmpty()) {
+            return new ResponseEntity<>(glucoseValues, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(glucoseValues, HttpStatus.OK);
     }
 
     @GetMapping(value = "/overallAverage")
