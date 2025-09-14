@@ -1,6 +1,7 @@
 package com.example.demo.Controller;
 
 import com.example.demo.Model.Glucose;
+import com.example.demo.Model.GlucoseRangeCount;
 import com.example.demo.Service.GlucoseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @CrossOrigin(origins = "*")
@@ -71,6 +73,13 @@ public class GlucoseController {
             return new ResponseEntity<>(standardDeviation, HttpStatus.OK);
         }
         return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+    }
+
+
+    @GetMapping(value = "/getDataForPieChart")
+    public ResponseEntity<GlucoseRangeCount> getDataForPieChart() {
+        GlucoseRangeCount rangeCount = glucoseService.getRangeCount();
+        return new ResponseEntity<>(rangeCount, HttpStatus.OK);
     }
 
 }

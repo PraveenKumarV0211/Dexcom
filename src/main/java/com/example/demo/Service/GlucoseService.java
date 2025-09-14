@@ -1,6 +1,7 @@
 package com.example.demo.Service;
 
 import com.example.demo.Model.Glucose;
+import com.example.demo.Model.GlucoseRangeCount;
 import com.example.demo.Repository.GlucoseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -34,7 +35,7 @@ public class GlucoseService {
         return (3.31 + 0.02392) * average;
     }
 
-    public Double getGlucoseStandardDeviation(){
+    public Double getGlucoseStandardDeviation() {
         return repository.findStandardDeviation();
     }
 
@@ -73,5 +74,23 @@ public class GlucoseService {
                 .collect(Collectors.toList());
 
         return filteredReadings;
+    }
+
+    public GlucoseRangeCount getRangeCount() {
+        List<Glucose> glucoseValues = getReadings();
+        int low = 0;
+        int mid = 0;
+        int high = 0;
+        int veryHigh = 0;
+        for (Glucose glucose : glucoseValues) {
+            if (glucose != null && glucose.getGlucose() != null) {
+                double value = glucose.getGlucose();
+                if (value < 120) low++;
+                else if (value >= 120 && value <= 180) mid++;
+                else if (value > 180 && value <= 250) high++;
+                else if (value > 250) veryHigh++;
+            }
+        }
+        return new GlucoseRangeCount(low, mid, high, veryHigh);
     }
 }
