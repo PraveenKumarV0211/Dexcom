@@ -48,6 +48,15 @@ public class GlucoseController {
         return new ResponseEntity<>(glucoseValues, HttpStatus.OK);
     }
 
+    @GetMapping(value = "/getRangeAverage")
+    public ResponseEntity<Double> getGlucoseAvgInRange(@RequestParam(value = "hours", defaultValue = "24") Integer hours) {
+        Double avgGlucoseInRange = glucoseService.getAverageByDuration(hours);
+        if (avgGlucoseInRange != null) {
+            return new ResponseEntity<>(avgGlucoseInRange, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(avgGlucoseInRange, HttpStatus.OK);
+    }
+
     @GetMapping(value = "/overallAverage")
     public ResponseEntity<Double> getOverallAverage() {
         Double overallAverage = glucoseService.getOverallAverageGlucose();

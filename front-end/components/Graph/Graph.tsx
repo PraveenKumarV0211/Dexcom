@@ -28,9 +28,13 @@ interface Glucose {
   Glucose: number;
 }
 
-const Graph = () => {
+interface GraphProps {
+  duration: number;
+  setDuration: (value: number) => void;
+}
+
+const Graph = ({ duration , setDuration}) => {
   const[readings,setReadings] = useState<Glucose[]>([]);
-  const [duration,setDuration] = useState<number>(24);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() =>{
@@ -40,8 +44,9 @@ const Graph = () => {
   const fetchReadings = async (hours:number) => {
     try{
       setError(null);
-
-      const response = await fetch(`${import.meta.env.VITE_graph_durationBased_data_endpoint}?hours=${hours}`);
+      const url = `${import.meta.env.VITE_graph_durationBased_data_endpoint}?hours=${hours}`;
+      console.log("Fetching from:", url);
+      const response = await fetch(url);
       if(!response.ok){
         throw new Error(`Failed to fetch readings: ${response.status}`);
       }

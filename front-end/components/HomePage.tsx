@@ -5,13 +5,15 @@ import PieChart from "./PieChart/PieChart"
 import "./HomePageStyle.css"
 
 const HomePage: React.FC = () => {
+  const [duration, setDuration] = useState<number>(24);
+
   return (
     <>
       <div>
-        <TopPanel />
+        <TopPanel duration={duration} />
         <div className="charts">
           <div className="line-box">
-            <Graph />
+            <Graph duration={duration} setDuration={setDuration}/>
           </div>
          <div className="pie-box">
             <PieChart />

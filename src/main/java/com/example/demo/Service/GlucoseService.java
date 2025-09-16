@@ -104,4 +104,11 @@ public class GlucoseService {
         }
         return new GlucoseRangeCount(low, mid, high, veryHigh);
     }
+
+    public Double getAverageByDuration(Integer hours) {
+        List<Glucose> glucoseInRange = getReadingsByDuration(hours);
+        int noOfValues = glucoseInRange.size();
+        double result = glucoseInRange.stream().filter(reading -> reading.getGlucose() != null).mapToDouble(Glucose::getGlucose).average().orElse(0.0);
+        return Math.round(result * 100.0) / 100.0;
+    }
 }

@@ -1,16 +1,20 @@
 import React , { useState , useEffect} from 'react'
 import "./TopPanelStyle.css"
 
-const TopPanel = () => {
+interface TopPanelProps {
+  duration: number;
+}
+
+const TopPanel = ({duration}) => {
     const [overallaverage,setOverallAverage] = useState<number>(0);
     const [todayavg,setTodayAvg] = useState<number>(0);
     const [rangaAvg,setRangaAvg] = useState<number>(0);
 
     useEffect(() =>{
         fetchOverallAvg();
-        fetchRangeAvg();
+        fetchRangeAvg(duration);
         fetchTodayAvg();
-      },[]);
+      },[duration]);
 
       const fetchOverallAvg = async () => {
         try{
@@ -42,15 +46,15 @@ const TopPanel = () => {
       };
     }
 
-    const fetchRangeAvg = async () => {
+    const fetchRangeAvg = async (duration:number) => {
         try{
-            const response = await fetch(`${import.meta.env.VITE_CurrentDay_Avg}`);
+            const response = await fetch(`${import.meta.env.VITE_Range_Avg}?hours=${duration}`);
             if(!response.ok){
               throw new Error(`Failed to fetch readings: ${response.status}`);
             }
             const data = await response.json();
             if( typeof data  === 'number'){
-                setTodayAvg(data);
+                setRangaAvg(data);
             }
       }catch (error){
 
@@ -60,7 +64,7 @@ const TopPanel = () => {
       <div className="Panel-container">
       <div className="stat-box blue">
         <div className="stat-text">
-          <span className="stat-title">Total Orders</span>
+          <span className="stat-title">Overall Average</span>
           <span className="stat-value">{overallaverage}</span>
           <span className="stat-delta up">+2.3% from last week</span>
         </div>
@@ -69,7 +73,7 @@ const TopPanel = () => {
 
       <div className="stat-box red">
         <div className="stat-text">
-          <span className="stat-title">Total Revenue</span>
+          <span className="stat-title">Today's Average</span>
           <span className="stat-value">{todayavg}</span>
           <span className="stat-delta up">+3.4% from last week</span>
         </div>
@@ -78,9 +82,9 @@ const TopPanel = () => {
 
       <div className="stat-box green">
         <div className="stat-text">
-          <span className="stat-title">Bounce Rate</span>
-          <span className="stat-value">{todayavg}</span>
-          <span className="stat-delta down">-4.5% from last week</span>
+          <span className="stat-title">Avg In Range selected</span>
+          <span className="stat-value">{rangaAvg}</span>
+          <span className="stat-delta down">Avg for Past {duration} hours</span>
         </div>
         <div className="stat-icon">📊</div>
       </div>
