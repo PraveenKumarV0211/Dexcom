@@ -15,9 +15,10 @@ public interface GlucoseRepository extends MongoRepository<Glucose, String> {
     Double findOverallAverageGlucose();
 
     @Aggregation(pipeline = {
-            "{ $match: { 'timestamp': { $gte: ?0, $lt: ?1 } } }",
-            "{ $group: { _id: null, average: { $avg: '$Glucose' } } }"})
-    Double findAverageReadingValueForToday(Date localDateTime, Date localDateTime1);
+            "{ $match: { 'DateTime': { $gte: ?0, $lt: ?1 } } }",
+            "{ $group: { _id: null, average: { $avg: '$Glucose' } } }"
+    })
+    Double findAverageReadingValueForToday(Date start, Date end);
 
     @Aggregation(pipeline = {
             "{ $group: { _id: null, stdDev: { $stdDevPop: '$Glucose' } } }"

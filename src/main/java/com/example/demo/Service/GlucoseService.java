@@ -27,7 +27,9 @@ public class GlucoseService {
     }
 
     public Double getOverallAverageGlucose() {
-        return repository.findOverallAverageGlucose();
+        Double result = repository.findOverallAverageGlucose();
+        if (result == null) return null;
+        return Math.round(result * 100.0) / 100.0;
     }
 
     public Double getGlucoseManagementIndicator() {
@@ -40,9 +42,18 @@ public class GlucoseService {
     }
 
     public Double getTodayAverage() {
-        Instant startOfDay = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant();
-        Instant endOfDay = LocalDate.now().atTime(LocalTime.MAX).atZone(ZoneId.systemDefault()).toInstant();
-        return repository.findAverageReadingValueForToday(Date.from(startOfDay), Date.from(endOfDay));
+        ZoneId zone = ZoneId.of("UTC");
+        Instant startOfDay = LocalDate.now(zone)
+                .atStartOfDay(zone)
+                .toInstant();
+        Instant endOfDay = LocalDate.now(zone)
+                .atTime(LocalTime.MAX)
+                .atZone(zone)
+                .toInstant();
+
+        Double result = repository.findAverageReadingValueForToday(Date.from(startOfDay), Date.from(endOfDay));
+        if (result == null) return null;
+        return Math.round(result * 100.0) / 100.0;
     }
 
     public List<Glucose> getReadingsByDuration(Integer hours) {

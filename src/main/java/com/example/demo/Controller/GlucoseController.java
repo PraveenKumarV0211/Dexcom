@@ -36,7 +36,7 @@ public class GlucoseController {
         if (currentDayAverage != null) {
             return new ResponseEntity<>(currentDayAverage, HttpStatus.OK);
         }
-        return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
     }
 
     @GetMapping(value = "/glucoseByDuration")

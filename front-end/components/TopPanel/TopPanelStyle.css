@@ -1,9 +1,79 @@
 .Panel-container {
     display: flex;
-    gap: 20px;
-    padding: 20px;
+    flex-wrap: wrap;
+    gap: 18px;
+    padding: 18px;
     background: #111827;
-    border-radius: 12px;
-    margin: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 14px;
+}
+
+/* Base box style */
+.stat-box {
+    flex: 1 1 240px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px;
+    background: #0f172a;
+    border-radius: 14px;
+    border-left: 4px solid var(--accent);
+    color: #e5e7eb;
+    min-width: 220px;
+}
+
+.stat-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stat-title {
+    font-size: 0.9rem;
+    color: #9ca3af;
+}
+
+.stat-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #f9fafb;
+}
+
+.stat-delta {
+    font-size: 0.85rem;
+}
+
+.stat-delta.up {
+    color: #34d399;
+}
+
+.stat-delta.down {
+    color: #f87171;
+}
+
+.stat-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 1.3rem;
+    background: var(--accent);
+    color: white;
+}
+
+
+.blue {
+    --accent: #22d3ee;
+}
+
+.red {
+    --accent: #fb7185;
+}
+
+.green {
+    --accent: #34d399;
+}
+
+.amber {
+    --accent: #f59e0b;
 }

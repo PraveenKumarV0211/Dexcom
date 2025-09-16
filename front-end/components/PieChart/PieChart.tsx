@@ -73,6 +73,13 @@ const PieChart = () => {
     plugins: {
       legend: {
         position: "bottom" as const,
+        align: "center",
+        labels : {
+          padding: 20,
+          usePointStyle: true,
+          boxWidth: 15,
+          fontSize: 15
+        },
       },
     },
     cutout: "60%",
@@ -83,7 +90,7 @@ const PieChart = () => {
     <h2 className="text-xl font-semibold text-center mb-4">
       Glucose Levels Distribution
     </h2>
-    <div style={{ width: "100%", height: "300px" }}>
+    <div style={{ width: "100%", height: "350px" }}>
       <Pie data={chartData} options={options} />
     </div>
   </div>

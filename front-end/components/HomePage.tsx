@@ -17,7 +17,7 @@ const HomePage: React.FC = () => {
             <PieChart />
           </div>
         </div>
-        <TopPanel />
+        
       </div>
     </>
   );
