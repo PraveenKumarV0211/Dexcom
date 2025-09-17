@@ -1,24 +1,23 @@
 .Panel-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 18px;
-    padding: 18px;
+    gap: 34px;
+    padding: 0px 14px;
     background: #111827;
     border-radius: 14px;
 }
 
-/* Base box style */
 .stat-box {
     flex: 1 1 240px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 18px 20px;
+    padding: 10px 20px;
     background: #0f172a;
     border-radius: 14px;
     border-left: 4px solid var(--accent);
     color: #e5e7eb;
-    min-width: 220px;
+    min-width: 20px;
 }
 
 .stat-text {

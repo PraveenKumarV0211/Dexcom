@@ -38,7 +38,9 @@ public class GlucoseService {
     }
 
     public Double getGlucoseStandardDeviation() {
-        return repository.findStandardDeviation();
+        Double result =  repository.findStandardDeviation();
+        if (result == null) return null;
+        return Math.round(result * 100.0) / 100.0;
     }
 
     public Double getTodayAverage() {

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Graph from "./Graph/Graph";
 import TopPanel from "./TopPanel/TopPanel";
 import PieChart from "./PieChart/PieChart"
+import LowerPanel from "./LowerPanel/LowerPanel"
 import "./HomePageStyle.css"
 
 const HomePage: React.FC = () => {
@@ -19,7 +20,7 @@ const HomePage: React.FC = () => {
             <PieChart />
           </div>
         </div>
-        
+        <LowerPanel />
       </div>
     </>
   );
