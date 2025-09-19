@@ -4,6 +4,8 @@ import com.example.demo.Model.Glucose;
 import com.example.demo.Model.GlucoseRangeCount;
 import com.example.demo.Service.GlucoseService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -89,6 +92,18 @@ public class GlucoseController {
     public ResponseEntity<GlucoseRangeCount> getDataForPieChart() {
         GlucoseRangeCount rangeCount = glucoseService.getRangeCount();
         return new ResponseEntity<>(rangeCount, HttpStatus.OK);
+    }
+
+    @GetMapping("/getPageData")
+    @CrossOrigin(origins = "http://localhost:5173")
+    public Page<Glucose> getPaginatedData(
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") Date startDate,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") Date endDate,
+            @RequestParam int page,
+            @RequestParam int size
+
+    ) {
+        return glucoseService.getPaginatedData(startDate, endDate, page, size);
     }
 
 }

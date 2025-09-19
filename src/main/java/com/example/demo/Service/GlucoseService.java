@@ -4,6 +4,8 @@ import com.example.demo.Model.Glucose;
 import com.example.demo.Model.GlucoseRangeCount;
 import com.example.demo.Repository.GlucoseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -113,4 +115,11 @@ public class GlucoseService {
         double result = glucoseInRange.stream().filter(reading -> reading.getGlucose() != null).mapToDouble(Glucose::getGlucose).average().orElse(0.0);
         return Math.round(result * 100.0) / 100.0;
     }
+
+
+    public Page<Glucose> getPaginatedData(Date startDate, Date endDate, int page, int size) {
+
+        return repository.findByDateTimeBetween(startDate, endDate, PageRequest.of(page, size));
+    }
+
 }

@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, BarChart2, Calendar } from "lucide-react";
+import { Home, Calendar } from "lucide-react";
 import "./NavBar.css"
 
 const Navbar: React.FC = () => {
