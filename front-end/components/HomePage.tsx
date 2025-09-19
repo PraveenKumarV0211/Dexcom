@@ -3,6 +3,7 @@ import Graph from "./Graph/Graph";
 import TopPanel from "./TopPanel/TopPanel";
 import PieChart from "./PieChart/PieChart"
 import LowerPanel from "./LowerPanel/LowerPanel"
+import NavBar from "./Navbar/NavBar";
 import "./HomePageStyle.css"
 
 const HomePage: React.FC = () => {
@@ -10,7 +11,9 @@ const HomePage: React.FC = () => {
 
   return (
     <>
-      <div>
+    <div className="homepage-container">
+      <NavBar />    
+      <div className="main-content">
         <TopPanel duration={duration} />
         <div className="charts">
           <div className="line-box">
@@ -22,6 +25,7 @@ const HomePage: React.FC = () => {
         </div>
         <LowerPanel />
       </div>
+    </div>
     </>
   );
 };

@@ -6,13 +6,26 @@ body {
     padding: 0;
 }
 
+.homepage-container {
+    display: flex;
+    height: 100vh;
+    /* Full screen height */
+}
+
+.main-content {
+    flex: 1;
+    padding: 16px 0px;
+    overflow-y: auto;
+    /* scrollable if content grows */
+}
+
 .charts {
     display: flex;
     justify-content: space-between;
     align-items: stretch;
     gap: 20px;
     width: 100%;
-    padding: 20px;
+    padding: 20px 0px;
 }
 
 .chart-box {
@@ -33,7 +46,7 @@ body {
 
 .line-box {
     flex: 1;
-    width: 70vw;
+    width: 67vw;
     height: 50vh;
     display: flex;
     flex-direction: column;
