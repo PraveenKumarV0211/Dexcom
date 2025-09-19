@@ -40,7 +40,7 @@ public class GlucoseService {
     }
 
     public Double getGlucoseStandardDeviation() {
-        Double result =  repository.findStandardDeviation();
+        Double result = repository.findStandardDeviation();
         if (result == null) return null;
         return Math.round(result * 100.0) / 100.0;
     }
@@ -122,4 +122,13 @@ public class GlucoseService {
         return repository.findByDateTimeBetween(startDate, endDate, PageRequest.of(page, size));
     }
 
+    public boolean addGlucoseValue(int value, Date time) {
+        boolean result = true;
+        try {
+            repository.save(new Glucose(time, value));
+        } catch (Exception e) {
+            result = false;
+        }
+        return result;
+    }
 }

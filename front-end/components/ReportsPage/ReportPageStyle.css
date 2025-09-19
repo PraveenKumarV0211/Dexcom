@@ -125,3 +125,18 @@ select {
     background-color: #1e293b;
     color: #f8fafc;
 }
+
+.report-layout {
+    display: flex;
+    min-height: 100vh;
+    width: 100vw;
+    background-color: #0f172a;
+}
+
+.report-content {
+    flex: 1;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
