@@ -1,5 +1,7 @@
 import React , { useState , useEffect} from 'react'
 import "./TopPanelStyle.css"
+import { SlCalender } from "react-icons/sl";
+import { FaClock } from "react-icons/fa6";
 
 interface TopPanelProps {
   duration: number;
@@ -60,22 +62,23 @@ const TopPanel = ({duration}) => {
 
       };
     }
+
+
+    
     return (
       <div className="Panel-container">
       <div className="stat-box blue">
         <div className="stat-text">
           <span className="stat-title">Overall Average</span>
           <span className="stat-value">{overallaverage}</span>
-          <span className="stat-delta up">+2.3% from last week</span>
         </div>
-        <div className="stat-icon">🛒</div>
+        <div className="stat-icon"><SlCalender />        </div>
       </div>
 
       <div className="stat-box red">
         <div className="stat-text">
           <span className="stat-title">Today's Average</span>
           <span className="stat-value">{todayavg}</span>
-          <span className="stat-delta up">+3.4% from last week</span>
         </div>
         <div className="stat-icon">💳</div>
       </div>
@@ -86,14 +89,14 @@ const TopPanel = ({duration}) => {
           <span className="stat-value">{rangaAvg}</span>
           <span className="stat-delta down">Avg for Past {duration} hours</span>
         </div>
-        <div className="stat-icon">📊</div>
+        <div className="stat-icon"><FaClock /></div>
       </div>
 
       <div className="stat-box amber">
         <div className="stat-text">
-          <span className="stat-title">Total Customers</span>
-          <span className="stat-value">8.4K</span>
-          <span className="stat-delta up">+8.4% from last week</span>
+          <span className="stat-title">Customer Name</span>
+          <span className="stat-value">Praveen Kumar</span>
+          <span className="stat-delta up">Age: 25</span>
         </div>
         <div className="stat-icon">👤</div>
       </div>
