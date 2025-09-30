@@ -4,10 +4,13 @@ import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.List;
 
+import com.example.demo.Service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,6 +28,9 @@ public class GlucoseController {
 
     @Autowired
     GlucoseService glucoseService;
+
+    @Autowired
+    ReportService reportService;
 
     @GetMapping(value = "/allData")
     public ResponseEntity<List<Glucose>> getAllGlucoseRecords() {
@@ -107,7 +113,6 @@ public class GlucoseController {
     }
 
     @GetMapping("/getPageData")
-    @CrossOrigin(origins = "http://localhost:5173")
     public Page<Glucose> getPaginatedData(
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") Date startDate,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") Date endDate,
@@ -116,6 +121,22 @@ public class GlucoseController {
 
     ) {
         return glucoseService.getPaginatedData(startDate, endDate, page, size);
+    }
+
+
+    @GetMapping("/getPdfData")
+    public ResponseEntity getPdfData(
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") Date startDate,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") Date endDate
+    ) {
+        byte[] pdfBytes = reportService.generatePdfDataStream(startDate, endDate).toByteArray();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("filename", "glucose_report.pdf");
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(pdfBytes);
+
     }
 
 }

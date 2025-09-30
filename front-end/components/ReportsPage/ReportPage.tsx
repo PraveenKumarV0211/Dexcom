@@ -25,6 +25,36 @@ const PaginatedTable: React.FC = () => {
     if (startDate && endDate) fetchData();
   }, [page, size]);
 
+  const downloadPdf = async () => {
+    if (!startDate || !endDate) return alert("Please select a date range");
+  
+    const baseUrl = import.meta.env.VITE_getPdfData;
+    const url = `${baseUrl}?startDate=${startDate}T00:00:00&endDate=${endDate}T23:59:59`;
+  
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          Accept: "application/pdf",
+        },
+      });
+  
+      if (!res.ok) {
+        throw new Error("Failed to download PDF");
+      }
+  
+      const blob = await res.blob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "glucose_report.pdf";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } catch (err) {
+      console.error(err);
+      alert("Error downloading PDF");
+    }
+  };
+
   return (
     <div className="report-layout">
       <Navbar />
@@ -49,6 +79,8 @@ const PaginatedTable: React.FC = () => {
             />
           </label>
           <button onClick={fetchData}>Fetch Data</button>
+
+          <button onClick={downloadPdf}>Download PDF</button>
         </div>
 
         <div className="table-container">

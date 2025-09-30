@@ -28,6 +28,7 @@ public interface GlucoseRepository extends MongoRepository<Glucose, String> {
     })
     Double findStandardDeviation();
 
+    @Query("{ 'DateTime' : { $gte: ?0, $lte: ?1 } }")
     List<Glucose> findByDateTimeBetween(Date startTime, Date currentTime);
 
     @Query("{ 'DateTime': { $gte: ?0, $lte: ?1 } }")
