@@ -2,6 +2,8 @@ import { useState } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import HomePage from "../components/HomePage";
 import ReportPage from "../components/ReportsPage/ReportPage";
+import FoodLogPage from "../components/FoodLogPage/FoodLogpage";
+import ChatPage from "../components/ChatPage/ChatPage"
 import "./App.css";
 
 function App() {
@@ -13,6 +15,8 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/report"  element={<ReportPage />} />
+          <Route path="/food-log" element={<FoodLogPage />} />
+          <Route path="/chat" element={<ChatPage />} />
         </Routes>
       </Router>
     </>

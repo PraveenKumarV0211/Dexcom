@@ -36,7 +36,8 @@ public class GlucoseService {
 
     public Double getGlucoseManagementIndicator() {
         Double average = getOverallAverageGlucose();
-        return (3.31 + 0.02392) * average;
+        Double result = (3.31 + 0.02392) * average;
+        return Math.round(result * 100.0) / 100.0;
     }
 
     public Double getGlucoseStandardDeviation() {
@@ -118,7 +119,6 @@ public class GlucoseService {
 
 
     public Page<Glucose> getPaginatedData(Date startDate, Date endDate, int page, int size) {
-
         return repository.findByDateTimeBetween(startDate, endDate, PageRequest.of(page, size));
     }
 

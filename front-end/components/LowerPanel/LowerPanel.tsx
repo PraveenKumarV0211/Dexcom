@@ -13,7 +13,7 @@ fetchStandardDeviation();
 },[])
     const fetchGMI = async () => {
         try{
-            const response = await fetch(`${import.meta.env.VITE_Overall_Avg}`);
+            const response = await fetch(`${import.meta.env.VITE_Get_GMI}`);
             if(!response.ok){
               throw new Error(`Failed to fetch readings: ${response.status}`);
             }
@@ -80,7 +80,7 @@ fetchStandardDeviation();
       <div className="info-box">
         <div className="info-text">
           <div className="info-header">
-            <span className="info-title">Overall Visitors</span>
+            <span className="info-title">GMI</span>
             <div className="tooltip-container">
               <Info className="tooltip-icon" />
               <span className="tooltip-text">
@@ -99,12 +99,11 @@ fetchStandardDeviation();
             <div className="tooltip-container">
               <Info className="tooltip-icon" />
               <span className="tooltip-text">
-                Average time users spend during their visit.
+              measures the spread or variability of glucose readings around the average glucose level over a given period, such as a day or week
               </span>
             </div>
           </div>
           <span className="info-value">{standardDeviation}</span>
-          <span className="info-delta up">+12.65%</span>
         </div>
       </div>
 

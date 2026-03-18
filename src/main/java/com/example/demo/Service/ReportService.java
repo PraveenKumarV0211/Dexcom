@@ -28,19 +28,14 @@ public class ReportService {
 
     public ByteArrayOutputStream generatePdfDataStream(Date startDate, Date endDate) {
 
-
         List<Glucose> data = repository.findByDateTimeBetween(startDate, endDate);
-
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
         PdfWriter writer = new PdfWriter(outputStream);
         PdfDocument pdfDoc = new PdfDocument(writer);
         Document document = new Document(pdfDoc);
-
         addHeader(document, "Glucose Readings Report");
         addTable(document, data);
         addFooter(document);
-
         document.close();
         return outputStream;
 

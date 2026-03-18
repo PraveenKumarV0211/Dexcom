@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, Calendar } from "lucide-react";
+import { Home, Calendar, UtensilsCrossed, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./NavBar.css"
 
@@ -17,6 +17,17 @@ const Navbar: React.FC = () => {
         <Calendar className="icon" />
         <span className="tooltip">Report</span>
       </div>
+
+      <div className="nav-item" onClick={() => navigate("/food-log")}>
+        <UtensilsCrossed className="icon" />
+        <span className="tooltip">Food Log</span>
+      </div>
+
+      <div className="nav-item" onClick={() => navigate("/chat")}>
+        <MessageCircle className="icon" />
+        <span className="tooltip">Chat</span>
+      </div>
+
     </nav>
   );
 };
