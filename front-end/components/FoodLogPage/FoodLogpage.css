@@ -1,0 +1,244 @@
+.foodlog-layout {
+    display: flex;
+    min-height: 100vh;
+    width: 100vw;
+    background-color: #0f172a;
+}
+
+.foodlog-content {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.foodlog-grid {
+    display: flex;
+    gap: 24px;
+    max-width: 1200px;
+}
+
+/* Form Card */
+.foodlog-form-card {
+    flex: 1;
+    background: #111827;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.form-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #f9fafb;
+    margin-bottom: 20px;
+}
+
+.form-header h2 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+    color: #f1f5f9;
+}
+
+.form-row {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group.full {
+    flex: 1 1 100%;
+}
+
+.form-group label {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+    background: #1e293b;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: #f9fafb;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-group input::placeholder {
+    color: #6b7280;
+}
+
+.nutrition-toggle {
+    background: transparent;
+    border: 1px dashed #374151;
+    color: #9ca3af;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin-bottom: 14px;
+    width: 100%;
+    transition: all 0.2s;
+}
+
+.nutrition-toggle:hover {
+    border-color: #3b82f6;
+    color: #60a5fa;
+    background: transparent;
+}
+
+.nutrition-row {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.submit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 6px;
+}
+
+.submit-btn:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Recent Logs Card */
+.foodlog-recent-card {
+    width: 380px;
+    background: #111827;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+}
+
+.recent-logs-scroll {
+    flex: 1;
+    overflow-y: auto;
+    max-height: calc(100vh - 140px);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 4px;
+}
+
+.recent-logs-scroll::-webkit-scrollbar {
+    width: 4px;
+}
+
+.recent-logs-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.recent-logs-scroll::-webkit-scrollbar-thumb {
+    background: #374151;
+    border-radius: 4px;
+}
+
+.log-item {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 12px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    transition: border-color 0.2s;
+}
+
+.log-item:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.log-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.log-food-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #f9fafb;
+}
+
+.log-meal-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    color: #fff;
+    text-transform: capitalize;
+}
+
+.log-item-details {
+    display: flex;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #9ca3af;
+}
+
+.log-item-nutrition {
+    display: flex;
+    gap: 10px;
+    font-size: 0.75rem;
+    color: #60a5fa;
+    margin-top: 6px;
+}
+
+.log-item-notes {
+    font-size: 0.78rem;
+    color: #6b7280;
+    margin-top: 4px;
+    font-style: italic;
+}
+
+.no-logs {
+    color: #6b7280;
+    text-align: center;
+    padding: 40px 0;
+    font-size: 0.9rem;
+}
+.foodlog-grid {
+    display: flex;
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
