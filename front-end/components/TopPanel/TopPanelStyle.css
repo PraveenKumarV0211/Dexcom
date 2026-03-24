@@ -15,9 +15,10 @@
     padding: 5px 20px;
     background: #0f172a;
     border-radius: 14px;
-    border-left: 4px solid var(--accent);
+    border-left: 4px solid;
     color: #e5e7eb;
     min-width: 20px;
+    transition: border-left-color 0.3s ease;
 }
 
 .stat-text {
@@ -34,19 +35,22 @@
 .stat-value {
     font-size: 1.6rem;
     font-weight: 700;
-    color: #f9fafb;
+    transition: color 0.3s ease;
+}
+
+.stat-label {
+    font-size: 0.78rem;
+    font-weight: 500;
+    transition: color 0.3s ease;
 }
 
 .stat-delta {
     font-size: 0.85rem;
+    color: #9ca3af;
 }
 
 .stat-delta.up {
     color: #34d399;
-}
-
-.stat-delta.down {
-    color: #f87171;
 }
 
 .stat-icon {
@@ -56,23 +60,6 @@
     display: grid;
     place-items: center;
     font-size: 1.3rem;
-    background: var(--accent);
     color: white;
-}
-
-
-.blue {
-    --accent: #22d3ee;
-}
-
-.red {
-    --accent: #fb7185;
-}
-
-.green {
-    --accent: #34d399;
-}
-
-.amber {
-    --accent: #f59e0b;
+    transition: background-color 0.3s ease;
 }

@@ -16,6 +16,7 @@ body {
     flex: 1;
     padding: 16px 0px;
     overflow-y: auto;
+    margin-left: 1rem;
     /* scrollable if content grows */
 }
 

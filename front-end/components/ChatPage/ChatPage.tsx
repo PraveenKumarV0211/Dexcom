@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import NavBar from "../Navbar/NavBar";
 import "./ChatPage.css";
 import { Send, Bot, User, Loader } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 interface Message {
   role: "user" | "assistant";
@@ -23,7 +24,8 @@ const ChatPage: React.FC = () => {
     if (!input.trim() || loading) return;
 
     const userMessage: Message = { role: "user", content: input.trim() };
-    setMessages((prev) => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput("");
     setLoading(true);
 
@@ -31,7 +33,10 @@ const ChatPage: React.FC = () => {
       const response = await fetch(`${import.meta.env.VITE_CHAT_API}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: userMessage.content }),
+        body: JSON.stringify({
+          question: userMessage.content,
+          history: updatedMessages.slice(-10)
+        }),
       });
 
       if (response.ok) {
@@ -100,8 +105,12 @@ const ChatPage: React.FC = () => {
                   {msg.role === "user" ? <User size={18} /> : <Bot size={18} />}
                 </div>
                 <div className="message-bubble">
-                  {msg.content}
-                </div>
+  {msg.role === "assistant" ? (
+    <ReactMarkdown>{msg.content}</ReactMarkdown>
+  ) : (
+    msg.content
+  )}
+</div>
               </div>
             ))}
 

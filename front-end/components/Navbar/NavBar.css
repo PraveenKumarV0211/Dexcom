@@ -1,41 +1,76 @@
 .navbar {
     height: 100vh;
-    width: 50px;
+    width: 56px;
     background-color: #111827;
     color: white;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     padding: 24px 0;
-    gap: 32px;
+    gap: 8px;
+    overflow: hidden;
+    transition: width 0.25s ease;
+    flex-shrink: 0;
+}
 
+.navbar:hover {
+    width: 180px;
 }
 
 .nav-item {
-    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    width: 100%;
     cursor: pointer;
+    border-radius: 0;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+.nav-item:hover {
+    background-color: #1e293b;
+}
+
+.nav-item.active {
+    background-color: #1e293b;
+    border-left: 3px solid #3b82f6;
+}
+
+.nav-item.active .icon {
+    color: #3b82f6;
+}
+
+.nav-item.active .nav-label {
+    color: #3b82f6;
 }
 
 .icon {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    color: #9ca3af;
+    transition: color 0.2s ease;
 }
 
-.tooltip {
-    position: absolute;
-    left: 48px;
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: #374151;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 14px;
-    white-space: nowrap;
+.nav-item:hover .icon {
+    color: #f9fafb;
+}
+
+.nav-label {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: #9ca3af;
     opacity: 0;
-    transition: opacity 0.2s ease-in-out;
-    pointer-events: none;
+    transition: opacity 0.2s ease;
 }
 
-.nav-item:hover .tooltip {
+.navbar:hover .nav-label {
     opacity: 1;
+}
+
+.nav-item:hover .nav-label {
+    color: #f9fafb;
 }

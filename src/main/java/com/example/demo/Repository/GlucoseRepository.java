@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public interface GlucoseRepository extends MongoRepository<Glucose, String> {
@@ -33,4 +34,12 @@ public interface GlucoseRepository extends MongoRepository<Glucose, String> {
 
     @Query("{ 'DateTime': { $gte: ?0, $lte: ?1 } }")
     Page<Glucose> findByDateTimeBetween(Date startDate, Date endDate, Pageable pageable);
+
+    @Aggregation(pipeline = {
+            "{ $match: { 'DateTime': { $gte: ?0, $lte: ?1 } } }",
+            "{ $group: { _id: null, avg: { $avg: '$Glucose' }, min: { $min: '$Glucose' }, max: { $max: '$Glucose' }, count: { $sum: 1 } } }"
+    })
+    org.bson.Document findGlucoseStats(Date start, Date end);
+
+    Glucose findTopByOrderByDateTimeDesc();
 }

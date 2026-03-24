@@ -1,10 +1,12 @@
 package com.example.demo.Model;
 
+import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
+@Data
 @Document(collection = "food_logs")
 public class FoodLog {
     @Id
