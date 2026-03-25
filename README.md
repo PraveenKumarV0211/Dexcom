@@ -1,98 +1,134 @@
+# Glucose
 
-# Glucose Monitoring Application
-### Overview
-A comprehensive full-stack web application for personal glucose monitoring and data visualization. This application integrates with Dexcom glucose monitoring device to provide real-time data visualization, statistical analysis, and historical tracking of glucose readings. Built with modern web technologies, it offers an intuitive interface for managing and analyzing blood glucose data to support better health management decisions.
+Full-stack glucose monitoring application with a React dashboard, Spring Boot API, MongoDB storage, food logging, exportable reports, and an AI assistant for personalized glucose analysis.
 
-### Architecture:
-![dexcom (1)](https://github.com/user-attachments/assets/8317659a-3f3c-4880-8b83-cac47fe27f60)
+## Current Feature Set
 
-Automated Collection: AWS EventBridge triggers Lambda every 5 minutes → Lambda fetches glucose readings from Dexcom API → stores in MongoDB Atlas.
+- Live dashboard with glucose trend charts for the last `3`, `6`, `12`, or `24` hours
+- Summary cards for overall average, today's average, selected-range average, GMI, and glucose standard deviation
+- Glucose distribution pie chart across low, in-range, high, and very high buckets
+- Manual glucose entry from the UI for backfilling readings
+- Report page with date-range filtering, paginated reading history, and PDF export
+- Food logging with meal type, portion size, source, notes, and optional carbs, protein, and fiber
+- AI chat assistant that can answer questions about latest readings, food-specific spikes, time-of-day patterns, meal-type comparisons, time-range comparisons, and estimated A1C trends
+- Knowledge-base ingestion plus vector search for retrieval-augmented chat responses
+- Automatic saving of chat-derived insights into the knowledge base for future reuse
 
-User Access: React frontend requests data from Spring Boot API → Spring Boot queries MongoDB Atlas → returns formatted glucose data for Chart.js visualization.
+## Architecture
 
-#### Key Components:
-##### 1. Data Ingestion Layer (AWS Serverless):
-AWS EventBridge
+This repository contains two main app layers:
 
-Purpose: Orchestrates the automated data collection process
-Configuration:
+- `front-end/`: React 19 + Vite client with dashboard, reports, food log, and chat pages
+- `src/main/java/com/example/demo/`: Spring Boot API serving glucose metrics, reports, food logs, knowledge ingestion, and chat
 
-Scheduled rules (e.g., every 5 minutes for real-time glucose data)
+Supporting services:
 
-Can be configured for different intervals based on Dexcom API rate limits
+- MongoDB stores glucose readings in `Dexcom_Data`, meals in `food_logs`, and vectorized knowledge in `knowledge_base`
+- Groq's OpenAI-compatible chat API powers assistant responses
+- Hugging Face embeddings power semantic search over the knowledge base
+- iText generates downloadable PDF reports
 
-Handles timezone considerations for consistent data collection
+Architecture to Explain data ingestion in MongoDB:
 
-AWS Lambda Function
+![description](img/architecture.jpg)
 
-Used Pydexcom library to get the details from Server.
+## Tech Stack
 
-Triggered every 5 minutes by AWS EventBridge.
+### Frontend
 
-##### 2.Data Storage Layer:
+- React 19
+- TypeScript
+- Vite
+- React Router
+- Chart.js via `react-chartjs-2`
 
-MongoDB Atlas
+### Backend
 
-Used NoSQL model to store data.
+- Java 17
+- Spring Boot 3.2
+- Spring Data MongoDB
+- Maven
+- iText 7
 
-Stored Glucose (Integer) and DateTime of reading.
+### Data and AI
 
-##### 3.API Layer (Spring Boot):
-RESTful API with layered architecture
+- MongoDB / MongoDB Atlas
+- Hugging Face Inference API for embeddings
+- Groq API with `llama-3.3-70b-versatile`
 
-Controller Layer → Service Layer → Repository Layer → MongoDB
+## Application Demo:
+![description](img/Homepage.png)
 
-Pagination: Handles large datasets efficiently
+![description](img/ReportPage.png)
 
-Filtering: Date ranges, glucose ranges, trend filtering
+![description](img/FoodloggingPAge.png)
 
-Aggregations: Statistical calculations (averages, std deviation)
+![description](img/AIchat.png)
+## Project Structure
 
-##### 4.Frontend Layer (React TypeScript)
-Initial Load: Fetch latest readings on component mount
-
-User Interaction: Filter/sort triggers new API calls
-
-State Management: React Context or Redux for global state
-
-Visualization: Chart.js renders data with real-time updates
-
-### Key Features
-
-1. Real-time Data Visualization: Interactive charts using Chart.js for glucose trend analysis
-2. Statistical Analysis: Calculate averages, standard deviation, and other metrics for glucose readings
-3. Time-based Filtering: View glucose data by custom date ranges and time periods
-4. Paginated Data Views: Efficiently handle large datasets with built-in pagination
-5. MongoDB Integration: Secure cloud-based data storage using MongoDB Atlas
-6. RESTful API: Well-structured backend API for data retrieval and management
-
-### Technology Stack
-
-#### Frontend
-React 18+ with TypeScript for type-safe component development
-
-Chart.js for data visualization
-
-Lucide React for modern icon components
-
-Vite for fast development and building
-
-#### Backend
-
-Spring Boot 3.2.0 for robust Java-based REST API
-
-MongoDB for NoSQL database storage
-
-MongoDB Atlas for cloud database hosting
-
-Maven for dependency management
+```text
+.
+├── front-end/
+│   ├── components/
+│   └── src/
+├── src/main/java/com/example/demo/
+│   ├── Controller/
+│   ├── Model/
+│   ├── Repository/
+│   └── Service/
+├── src/main/resources/application.properties
+├── pom.xml
+└── README.md
+```
 
 
-### Acknowledgments
-Dexcom for glucose monitoring device integration
+## Local Setup
 
-Chart.js community for visualization libraries
+### Prerequisites
 
-Spring Boot and React communities for excellent documentation
+- Java 17
+- Node.js 18+
+- npm
+- MongoDB or MongoDB Atlas
 
-MongoDB Atlas for reliable cloud database services
+### 1. Configure the backend
+
+The Spring Boot app reads these environment variables:
+
+```bash
+APPLICATION_PORT=8999
+DB_HOST=<your-mongodb-connection-string>
+HF_TOKEN=<your-hugging-face-token>
+GROK_TOKEN=<your-groq-token>
+```
+
+Notes:
+
+- `HF_TOKEN` and `GROK_TOKEN` are required for chat and knowledge-base features
+- Dashboard, report, and food-log features can still work without AI credentials
+- `GEMINI_KEY` is present in `application.properties`, but the current code path uses `GROK_TOKEN`
+
+Start the backend from the repository root:
+
+```bash
+./mvnw spring-boot:run
+```
+
+### 2. Configure the frontend
+
+The Vite app expects per-endpoint URLs in `front-end/.env`. For local development, they typically point to `http://localhost:8999`:
+
+
+Start the frontend:
+
+```bash
+cd front-end
+npm install
+npm run dev
+```
+
+## Knowledge Base Notes
+
+- Knowledge documents are stored in the `knowledge_base` collection
+- Semantic search expects a MongoDB vector index named `vector_index` on the `embedding` field
+- Chat answers can auto-save short insights back into the knowledge base as `auto_insight` entries

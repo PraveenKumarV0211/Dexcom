@@ -36,7 +36,7 @@ public class GlucoseService {
 
     public Double getGlucoseManagementIndicator() {
         Double average = getOverallAverageGlucose();
-        Double result = (3.31 + 0.02392) * average;
+        Double result = 3.31 + (0.02392 * average);
         return Math.round(result * 100.0) / 100.0;
     }
 
