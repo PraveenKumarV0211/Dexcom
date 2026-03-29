@@ -40,7 +40,9 @@ public class ChatService {
             Glucose latest = glucoseRepo.findTopByOrderByDateTimeDesc();
             if (latest != null) {
                 String dataPrompt = "USER DATA:\nLatest glucose reading: " + latest.getGlucose()
-                        + " mg/dL at " + latest.getDateTime() + "\n\nUser question: " + userQuestion;
+                        + " mg/dL at " + latest.getDateTime() + "\n\n"
+                        + buildHistoryContext(history)
+                        + "User question: " + userQuestion;
                 List<String> knowledge = List.of();
                 try { knowledge = knowledgeService.search("glucose reading", 3); } catch (Exception e) {}
                 return geminiService.call(buildSystemPrompt(knowledge), dataPrompt);
@@ -71,6 +73,7 @@ public class ChatService {
                 dataPrompt.append("Max: ").append(max).append(" mg/dL\n");
                 dataPrompt.append("Time above 180 mg/dL: ").append(String.format("%.1f", abovePct)).append("%\n\n");
             }
+            dataPrompt.append(buildHistoryContext(history));
             dataPrompt.append("User question: ").append(userQuestion);
             return geminiService.call(buildSystemPrompt(knowledge), dataPrompt.toString());
         }
@@ -96,7 +99,7 @@ public class ChatService {
             try { knowledge = knowledgeService.search(intent.getFood() + " glucose spike", 5); } catch (Exception e) {}
 
             String systemPrompt = buildSystemPrompt(knowledge);
-            String dataPrompt = buildDataPrompt(glucoseMap, userQuestion);
+            String dataPrompt = buildDataPrompt(glucoseMap, userQuestion, history);
             String answer = geminiService.call(systemPrompt, dataPrompt);
             autoSaveFinding(userQuestion, answer);
             return answer;
@@ -144,7 +147,7 @@ public class ChatService {
                     dataPrompt.append("  Above 180: ").append(String.format("%.1f", abovePct)).append("%\n\n");
                 }
             }
-
+            dataPrompt.append(buildHistoryContext(history));
             dataPrompt.append("User question: ").append(userQuestion);
 
             List<String> knowledge = List.of();
@@ -208,7 +211,7 @@ public class ChatService {
                     dataPrompt.append("  No meals tracked\n\n");
                 }
             }
-
+            dataPrompt.append(buildHistoryContext(history));
             dataPrompt.append("User question: ").append(userQuestion);
 
             List<String> knowledge = List.of();
@@ -249,7 +252,7 @@ public class ChatService {
             } else {
                 dataPrompt.append("No glucose readings found for the last 90 days.\n\n");
             }
-
+            dataPrompt.append(buildHistoryContext(history));
             dataPrompt.append("User question: ").append(userQuestion);
 
             List<String> knowledge = List.of();
@@ -289,7 +292,7 @@ public class ChatService {
                     appendStats(dataPrompt, compReadings, compFoodLogs);
                 }
             }
-
+            dataPrompt.append(buildHistoryContext(history));
             dataPrompt.append("\nUser question: ").append(userQuestion);
 
             List<String> knowledge = List.of();
@@ -303,20 +306,7 @@ public class ChatService {
         // General fallback
         List<String> knowledge = List.of();
         try { knowledge = knowledgeService.search(userQuestion, 5); } catch (Exception e) {}
-
-        StringBuilder historyContext = new StringBuilder();
-        if (history != null && history.size() > 1) {
-            historyContext.append("CONVERSATION HISTORY:\n");
-            for (int i = 0; i < history.size() - 1; i++) {
-                Map<String, String> msg = history.get(i);
-                String role = msg.get("role");
-                historyContext.append(role.equals("user") ? "User" : "Assistant")
-                        .append(": ").append(msg.get("content")).append("\n");
-            }
-            historyContext.append("\n");
-        }
-
-        String answer = geminiService.call(buildSystemPrompt(knowledge), historyContext + "User question: " + userQuestion);
+        String answer = geminiService.call(buildSystemPrompt(knowledge), buildHistoryContext(history) + "User question: " + userQuestion);
         autoSaveFinding(userQuestion, answer);
         return answer;
     }
@@ -377,19 +367,17 @@ public class ChatService {
         }
 
         sb.append("RESPONSE RULES:\n");
-        sb.append("- Be concise. Maximum 4-6 sentences for simple questions, 8-10 for comparisons\n");
         sb.append("- Lead with the key finding immediately, no filler or preamble\n");
         sb.append("- Use actual numbers from the data (baseline, peak, spike, recovery time)\n");
+        sb.append("- When comparing multiple meals, break down EACH meal with its date, time, baseline, peak, spike, and recovery\n");
+        sb.append("- Include dates and times so the user can correlate with their experience\n");
         sb.append("- Give 1-2 actionable suggestions max, not a generic list\n");
-        sb.append("- Do NOT repeat the data back to the user, they already have it\n");
-        sb.append("- Do NOT use bullet points or numbered lists unless comparing multiple meals\n");
-        sb.append("- Do NOT add disclaimers like 'consult your doctor' or 'everyone is different'\n");
         sb.append("- If no data is provided, give a short direct answer from general knowledge\n");
         sb.append("- Use **bold** for key numbers and findings\n");
         return sb.toString();
     }
 
-    private String buildDataPrompt(Map<FoodLog, List<Glucose>> glucoseMap, String question) {
+    private String buildDataPrompt(Map<FoodLog, List<Glucose>> glucoseMap, String question, List<Map<String, String>> history)  {
         StringBuilder sb = new StringBuilder();
 
         if (!glucoseMap.isEmpty()) {
@@ -398,7 +386,7 @@ public class ChatService {
                 FoodLog meal = entry.getKey();
                 List<Glucose> readings = entry.getValue();
 
-                sb.append("--- ").append(meal.getTimestamp().toLocalDate());
+                sb.append("--- ").append(meal.getTimestamp());
                 sb.append(" (").append(meal.getFoodName());
                 sb.append(", ").append(meal.getPortionSize());
                 if (meal.getSource() != null) sb.append(", ").append(meal.getSource());
@@ -426,6 +414,7 @@ public class ChatService {
             }
         }
 
+        sb.append(buildHistoryContext(history));
         sb.append("User question: ").append(question);
         return sb.toString();
     }
@@ -536,5 +525,18 @@ public class ChatService {
         } catch (Exception e) {
             return null;
         }
+    }
+    private String buildHistoryContext(List<Map<String, String>> history) {
+        if (history == null || history.size() <= 1) return "";
+        StringBuilder sb = new StringBuilder();
+        sb.append("CONVERSATION HISTORY:\n");
+        for (int i = 0; i < history.size() - 1; i++) {
+            Map<String, String> msg = history.get(i);
+            String role = msg.get("role");
+            sb.append(role.equals("user") ? "User" : "Assistant")
+                    .append(": ").append(msg.get("content")).append("\n");
+        }
+        sb.append("\n");
+        return sb.toString();
     }
 }

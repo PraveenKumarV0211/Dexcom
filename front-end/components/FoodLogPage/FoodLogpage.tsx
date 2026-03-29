@@ -60,7 +60,7 @@ const FoodLogPage: React.FC = () => {
       notes,
     };
 
-    if (timestamp) body.timestamp = timestamp + ":00";
+    if (timestamp) body.timestamp = timestamp.length === 16 ? `${timestamp}:00` : timestamp;
     if (carbs) body.carbs = parseFloat(carbs);
     if (protein) body.protein = parseFloat(protein);
     if (fiber) body.fiber = parseFloat(fiber);

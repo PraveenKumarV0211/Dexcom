@@ -12,11 +12,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class GlucoseService {
@@ -62,34 +59,8 @@ public class GlucoseService {
     }
 
     public List<Glucose> getReadingsByDuration(Integer hours) {
-        List<Glucose> allReadings = repository.findAll();
-
-        if (allReadings.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        Date currentTime = new Date();
-
-        // Filter readings within the time window
-        List<Glucose> filteredReadings = allReadings.stream()
-                .filter(reading -> {
-                    if (reading.getDateTime() == null) return false;
-
-                    // Calculate time difference in hours
-                    long diffInMillies = Math.abs(currentTime.getTime() - reading.getDateTime().getTime());
-                    long diffInHours = diffInMillies / (60 * 60 * 1000);
-
-                    return diffInHours <= hours;
-                })
-                .sorted((r1, r2) -> {
-                    // Sort by DateTime ascending
-                    if (r1.getDateTime() == null) return 1;
-                    if (r2.getDateTime() == null) return -1;
-                    return r1.getDateTime().compareTo(r2.getDateTime());
-                })
-                .collect(Collectors.toList());
-
-        return filteredReadings;
+        Date[] durationWindow = getDurationWindow(hours);
+        return repository.findReadingsByDateTimeBetweenOrderByDateTimeAsc(durationWindow[0], durationWindow[1]);
     }
 
     public GlucoseRangeCount getRangeCount() {
@@ -112,8 +83,14 @@ public class GlucoseService {
 
     public Double getAverageByDuration(Integer hours) {
         List<Glucose> glucoseInRange = getReadingsByDuration(hours);
-        int noOfValues = glucoseInRange.size();
-        double result = glucoseInRange.stream().filter(reading -> reading.getGlucose() != null).mapToDouble(Glucose::getGlucose).average().orElse(0.0);
+        if (glucoseInRange.isEmpty()) {
+            return 0.0;
+        }
+        double result = glucoseInRange.stream()
+                .filter(reading -> reading.getGlucose() != null)
+                .mapToDouble(Glucose::getGlucose)
+                .average()
+                .orElse(0.0);
         return Math.round(result * 100.0) / 100.0;
     }
 
@@ -130,5 +107,12 @@ public class GlucoseService {
             result = false;
         }
         return result;
+    }
+
+    private Date[] getDurationWindow(Integer hours) {
+        int safeHours = hours == null ? 24 : Math.max(hours, 0);
+        Date end = new Date();
+        Date start = new Date(end.getTime() - (safeHours * 60L * 60L * 1000L));
+        return new Date[]{start, end};
     }
 }

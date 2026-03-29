@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 @Repository
 public interface GlucoseRepository extends MongoRepository<Glucose, String> {
@@ -31,6 +30,9 @@ public interface GlucoseRepository extends MongoRepository<Glucose, String> {
 
     @Query("{ 'DateTime' : { $gte: ?0, $lte: ?1 } }")
     List<Glucose> findByDateTimeBetween(Date startTime, Date currentTime);
+
+    @Query(value = "{ 'DateTime' : { $gte: ?0, $lte: ?1 } }", sort = "{ 'DateTime' : 1 }")
+    List<Glucose> findReadingsByDateTimeBetweenOrderByDateTimeAsc(Date startDate, Date endDate);
 
     @Query("{ 'DateTime': { $gte: ?0, $lte: ?1 } }")
     Page<Glucose> findByDateTimeBetween(Date startDate, Date endDate, Pageable pageable);
