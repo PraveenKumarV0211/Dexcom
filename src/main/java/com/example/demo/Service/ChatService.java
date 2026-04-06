@@ -79,7 +79,7 @@ public class ChatService {
         }
 
         // Extract intent using LLM
-        ChatIntent intent = extractIntent(userQuestion);
+        ChatIntent intent = extractIntent(userQuestion,history);
 
         List<FoodLog> meals = List.of();
 
@@ -315,13 +315,14 @@ public class ChatService {
         return Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
     }
 
-    private ChatIntent extractIntent(String userQuestion) {
+    private ChatIntent extractIntent(String userQuestion, List<Map<String, String>> history) {
         try {
             String today = LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-
+            String historyContext = buildHistoryContext(history);
             String json = geminiService.call(
                     "Today's date is " + today + ". " +
                             "Extract intent from the user's question about their glucose/food data. " +
+                            "Use the conversation history to resolve references like 'that one', 'it', 'the same', etc. "+
                             "Determine the type: " +
                             "'food_specific' if asking about a specific food, " +
                             "'time_based' if asking about a time period, " +
@@ -339,7 +340,7 @@ public class ChatService {
                             "\"startDate\": \"yyyy-MM-dd\", \"endDate\": \"yyyy-MM-dd\", " +
                             "\"compStartDate\": \"yyyy-MM-dd\", \"compEndDate\": \"yyyy-MM-dd\", " +
                             "\"mealType\": \"...\", \"timeOfDay\": \"...\"}",
-                    userQuestion
+                    historyContext + "Current question: " + userQuestion
             );
             String clean = json.replaceAll("```json|```", "").trim();
             ObjectMapper mapper = new ObjectMapper();

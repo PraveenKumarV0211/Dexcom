@@ -18,6 +18,7 @@ public class Glucose {
     @JsonProperty("Glucose")
     Integer Glucose;
 
+    public Glucose() {}
     public Glucose(Date DateTime, Integer Glucose) {
         this.DateTime = DateTime;
         this.Glucose = Glucose;
