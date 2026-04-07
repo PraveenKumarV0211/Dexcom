@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import NavBar from "../Navbar/NavBar";
-import "./FoodLogPage.css";
+import "./FoodLogpage.css";
 import { UtensilsCrossed, Clock, Plus } from "lucide-react";
 
 interface FoodLogEntry {

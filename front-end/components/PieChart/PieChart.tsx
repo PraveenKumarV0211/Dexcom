@@ -6,7 +6,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-
+import "./PieChartStyle.css";
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 interface GlucoseRangeCount {
