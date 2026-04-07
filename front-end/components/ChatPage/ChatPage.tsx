@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import NavBar from "../Navbar/NavBar";
-import "./ChatPage.css";
+import "./Chatpage.css";
 import { Send, Bot, User, Loader } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
