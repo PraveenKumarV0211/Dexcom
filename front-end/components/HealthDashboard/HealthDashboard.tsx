@@ -63,10 +63,10 @@ const HealthDashboard: React.FC = () => {
   const fetchData = async () => {
     try {
       const [hrRes, stepsRes, restingRes, energyRes] = await Promise.all([
-        fetch("http://localhost:8999/api/health-events/heart_rate"),
-        fetch("http://localhost:8999/api/health-events/steps"),
-        fetch("http://localhost:8999/api/health-events/resting_heart_rate"),
-        fetch("http://localhost:8999/api/health-events/active_energy"),
+        fetch("/api/health-events/heart_rate"),
+        fetch("/api/health-events/steps"),
+        fetch("/api/health-events/resting_heart_rate"),
+        fetch("/api/health-events/active_energy"),
       ]);
       const hr: HealthEvent[] = await hrRes.json();
       const steps: HealthEvent[] = await stepsRes.json();
@@ -88,7 +88,7 @@ const HealthDashboard: React.FC = () => {
     setInsightLoading(true);
     setInsight(null);
     try {
-      const res = await fetch(`http://localhost:8999/api/health-insights/${day}`);
+      const res = await fetch(`/api/health-insights/${day}`);
       const data = await res.json();
       const parsed = JSON.parse(data.insight);
       setInsight(parsed);
