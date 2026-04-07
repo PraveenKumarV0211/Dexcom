@@ -1,6 +1,7 @@
 package com.example.demo.Controller;
 
 import com.example.demo.Service.DexcomApiService;
+import com.example.demo.Service.GlucoseAlertConsumer;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -9,9 +10,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class DexcomAuthController {
 
     private final DexcomApiService dexcomApiService;
+    private final GlucoseAlertConsumer glucoseAlertConsumer;
 
-    public DexcomAuthController(DexcomApiService dexcomApiService) {
+    public DexcomAuthController(DexcomApiService dexcomApiService, GlucoseAlertConsumer glucoseAlertConsumer) {
         this.dexcomApiService = dexcomApiService;
+        this.glucoseAlertConsumer = glucoseAlertConsumer;
     }
 
     @GetMapping("/api/dexcom/callback")
@@ -22,5 +25,10 @@ public class DexcomAuthController {
     public String manualPoll() {
         dexcomApiService.pollDexcomApi();
         return "Poll triggered";
+    }
+    @GetMapping("/api/test/digest")
+    public String testDigest() {
+        glucoseAlertConsumer.sendDailyDigest();
+        return "Digest sent";
     }
 }

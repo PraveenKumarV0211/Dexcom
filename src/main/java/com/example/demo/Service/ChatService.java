@@ -31,6 +31,9 @@ public class ChatService {
     @Autowired
     private GeminiService geminiService;
 
+    @Autowired
+    private ElasticsearchQueryService esQueryService;
+
     public String chat(String userQuestion, List<Map<String, String>> history) {
         String lowerQuestion = userQuestion.toLowerCase();
 
@@ -356,8 +359,14 @@ public class ChatService {
 
     private String buildSystemPrompt(List<String> knowledgeChunks) {
         StringBuilder sb = new StringBuilder();
-        sb.append("You are a diabetic health assistant. Analyze the user's glucose readings ");
-        sb.append("and food logs to provide personalized insights.\n\n");
+        sb.append("You are a diabetic health assistant with access to multi-signal health data ");
+        sb.append("including glucose readings, heart rate, steps, and sleep from the user's devices.\n\n");
+
+        // Add multi-signal context from Elasticsearch
+        String multiSignal = esQueryService.getMultiSignalContext(null, null);
+        if (!multiSignal.isEmpty()) {
+            sb.append(multiSignal);
+        }
 
         if (!knowledgeChunks.isEmpty()) {
             sb.append("PERSONAL KNOWLEDGE BASE:\n");
@@ -370,6 +379,7 @@ public class ChatService {
         sb.append("RESPONSE RULES:\n");
         sb.append("- Lead with the key finding immediately, no filler or preamble\n");
         sb.append("- Use actual numbers from the data (baseline, peak, spike, recovery time)\n");
+        sb.append("- When multi-signal data is available, correlate glucose with heart rate, steps, and sleep\n");
         sb.append("- When comparing multiple meals, break down EACH meal with its date, time, baseline, peak, spike, and recovery\n");
         sb.append("- Include dates and times so the user can correlate with their experience\n");
         sb.append("- Give 1-2 actionable suggestions max, not a generic list\n");
