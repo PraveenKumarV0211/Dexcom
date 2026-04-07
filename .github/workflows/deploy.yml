@@ -19,7 +19,7 @@ jobs:
           java-version: 17
 
       - name: Build Spring Boot JAR
-        run: ./mvnw clean package -DskipTests
+        run: mvn clean package -DskipTests
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
