@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, Calendar, UtensilsCrossed, MessageCircle } from "lucide-react";
+import { Home, Calendar, UtensilsCrossed, MessageCircle, Activity } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./NavBar.css";
 
@@ -12,6 +12,7 @@ const Navbar: React.FC = () => {
     { path: "/report", icon: Calendar, label: "Report" },
     { path: "/food-log", icon: UtensilsCrossed, label: "Food Log" },
     { path: "/chat", icon: MessageCircle, label: "Chat" },
+    { path: "/health", icon: Activity, label: "Health" },
   ];
 
   return (

@@ -4,6 +4,7 @@ import HomePage from "../components/HomePage";
 import ReportPage from "../components/ReportsPage/ReportPage";
 import FoodLogPage from "../components/FoodLogPage/FoodLogpage";
 import ChatPage from "../components/ChatPage/ChatPage"
+import HealthDashboard from "../components/HealthDashboard/HealthDashboard";
 import "./App.css";
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
           <Route path="/report"  element={<ReportPage />} />
           <Route path="/food-log" element={<FoodLogPage />} />
           <Route path="/chat" element={<ChatPage />} />
+          <Route path="/health" element={<HealthDashboard />} />
         </Routes>
       </Router>
     </>

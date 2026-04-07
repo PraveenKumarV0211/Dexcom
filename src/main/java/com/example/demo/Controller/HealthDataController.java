@@ -30,6 +30,10 @@ public class HealthDataController {
                 case "heart_rate" -> "heart-rate";
                 case "step_count" -> "steps";
                 case "sleep_analysis" -> "sleep";
+                case "resting_heart_rate" -> "resting-heart-rate";
+                case "respiratory_rate" -> "respiratory-rate";
+                case "active_energy" -> "active-energy";
+                case "walking_running_distance" -> "walking-running-distance";
                 default -> "health-events";
             };
 
