@@ -51,11 +51,15 @@ public class HealthKafkaConsumer {
     }
 
     private void saveEvent(String type, Map<String, Object> record) {
-        HealthEvent event = new HealthEvent();
-        event.setType(type);
-        event.setUnits((String) record.get("units"));
-        event.setDate((String) record.get("date"));
-        event.setData(record);
-        healthEventRepository.save(event);
+        try {
+            HealthEvent event = new HealthEvent();
+            event.setType(type);
+            event.setUnits((String) record.get("units"));
+            event.setDate((String) record.get("date"));
+            event.setData(record);
+            healthEventRepository.save(event);
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+
+        }
     }
 }
