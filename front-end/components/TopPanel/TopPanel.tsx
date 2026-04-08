@@ -28,8 +28,11 @@ const TopPanel = ({duration}: TopPanelProps) => {
 
     useEffect(() =>{
         fetchOverallAvg();
-        fetchRangeAvg(duration);
         fetchTodayAvg();
+      },[]);
+
+    useEffect(() =>{
+        fetchRangeAvg(duration);
       },[duration]);
 
       const fetchOverallAvg = async () => {

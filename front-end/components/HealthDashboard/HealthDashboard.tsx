@@ -163,7 +163,6 @@ const HealthDashboard: React.FC = () => {
     setDaySummaries(summaries);
     if (summaries.length > 0) {
       setSelectedDay(summaries[0].date);
-      fetchInsight(summaries[0].date);
     }
   };
 
