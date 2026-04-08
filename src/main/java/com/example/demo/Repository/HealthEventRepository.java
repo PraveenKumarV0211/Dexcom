@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface HealthEventRepository extends MongoRepository<HealthEvent, String> {
     List<HealthEvent> findByType(String type);
+    List<HealthEvent> findByTypeAndDateStartingWith(String type, String datePrefix);
 }

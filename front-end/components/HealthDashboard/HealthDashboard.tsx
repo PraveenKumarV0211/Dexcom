@@ -45,43 +45,98 @@ interface DaySummary {
   hrReadings: number;
 }
 
+interface DayData {
+  summary: DaySummary;
+  hrEvents: HealthEvent[];
+}
+
 const HealthDashboard: React.FC = () => {
-  const [heartRateData, setHeartRateData] = useState<HealthEvent[]>([]);
-  const [stepsData, setStepsData] = useState<HealthEvent[]>([]);
-  const [restingHRData, setRestingHRData] = useState<HealthEvent[]>([]);
-  const [activeEnergyData, setActiveEnergyData] = useState<HealthEvent[]>([]);
-  const [daySummaries, setDaySummaries] = useState<DaySummary[]>([]);
+  const [availableDays, setAvailableDays] = useState<string[]>([]);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [dayDataCache, setDayDataCache] = useState<Record<string, DayData>>({});
   const [loading, setLoading] = useState(true);
+  const [dayLoading, setDayLoading] = useState(false);
   const [insight, setInsight] = useState<{ summary: string; anomalies: string; tips: string } | null>(null);
   const [insightLoading, setInsightLoading] = useState(false);
 
   useEffect(() => {
-    fetchData();
+    fetchAvailableDays();
   }, []);
 
-  const fetchData = async () => {
+  const parseDate = (dateStr: string): Date => {
+    return new Date(dateStr.replace(/ -\d{4}$/, ""));
+  };
+
+  const fetchAvailableDays = async () => {
+    try {
+      const res = await fetch("/api/health-events/days");
+      const days: string[] = await res.json();
+      setAvailableDays(days);
+      if (days.length > 0) {
+        setSelectedDay(days[0]);
+        await fetchDayData(days[0]);
+      }
+    } catch (e) {
+      console.error("Failed to fetch available days", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDayData = async (date: string) => {
+    if (dayDataCache[date]) return;
+    setDayLoading(true);
     try {
       const [hrRes, stepsRes, restingRes, energyRes] = await Promise.all([
-        fetch("/api/health-events/heart_rate"),
-        fetch("/api/health-events/steps"),
-        fetch("/api/health-events/resting_heart_rate"),
-        fetch("/api/health-events/active_energy"),
+        fetch(`/api/health-events/heart_rate?date=${date}`),
+        fetch(`/api/health-events/steps?date=${date}`),
+        fetch(`/api/health-events/resting_heart_rate?date=${date}`),
+        fetch(`/api/health-events/active_energy?date=${date}`),
       ]);
       const hr: HealthEvent[] = await hrRes.json();
       const steps: HealthEvent[] = await stepsRes.json();
       const resting: HealthEvent[] = await restingRes.json();
       const energy: HealthEvent[] = await energyRes.json();
-      setHeartRateData(hr);
-      setStepsData(steps);
-      setRestingHRData(resting);
-      setActiveEnergyData(energy);
-      buildSummaries(hr, steps, resting, energy);
-      setLoading(false);
+
+      const summary = buildDaySummary(date, hr, steps, resting, energy);
+      setDayDataCache((prev) => ({ ...prev, [date]: { summary, hrEvents: hr } }));
     } catch (e) {
-      console.error("Failed to fetch health data", e);
-      setLoading(false);
+      console.error(`Failed to fetch data for ${date}`, e);
+    } finally {
+      setDayLoading(false);
     }
+  };
+
+  const buildDaySummary = (
+    date: string,
+    hr: HealthEvent[],
+    steps: HealthEvent[],
+    resting: HealthEvent[],
+    energy: HealthEvent[]
+  ): DaySummary => {
+    const hrVals = hr
+      .map((e) => Number(e.data?.Avg || e.data?.avg || 0))
+      .filter((v) => v > 0);
+    const totalSteps = steps.reduce((sum, e) => sum + Number(e.data?.qty || 0), 0);
+    const restingHR = resting.length > 0 ? Number(resting[0].data?.qty || 0) : 0;
+    const totalCalories = energy.reduce((sum, e) => sum + Number(e.data?.qty || 0), 0);
+
+    return {
+      date,
+      avgHR: hrVals.length > 0 ? Math.round(hrVals.reduce((a, b) => a + b, 0) / hrVals.length) : 0,
+      minHR: hrVals.length > 0 ? Math.min(...hrVals) : 0,
+      maxHR: hrVals.length > 0 ? Math.max(...hrVals) : 0,
+      restingHR,
+      totalSteps: Math.round(totalSteps),
+      totalCalories: Math.round(totalCalories),
+      hrReadings: hrVals.length,
+    };
+  };
+
+  const handleDaySelect = async (date: string) => {
+    setSelectedDay(date);
+    setInsight(null);
+    await fetchDayData(date);
   };
 
   const fetchInsight = async (day: string) => {
@@ -99,79 +154,12 @@ const HealthDashboard: React.FC = () => {
     setInsightLoading(false);
   };
 
-  const parseDate = (dateStr: string): Date => {
-    return new Date(dateStr.replace(/ -\d{4}$/, ""));
-  };
-
-  const getDayKey = (dateStr: string): string => {
-    const d = parseDate(dateStr);
-    return d.toISOString().split("T")[0];
-  };
-
-  const buildSummaries = (hr: HealthEvent[], steps: HealthEvent[], resting: HealthEvent[], energy: HealthEvent[]) => {
-    const dayMap: Record<string, { hrVals: number[]; steps: number; restingHR: number; calories: number }> = {};
-
-    const ensureDay = (key: string) => {
-      if (!dayMap[key]) dayMap[key] = { hrVals: [], steps: 0, restingHR: 0, calories: 0 };
-    };
-
-    hr.forEach((e) => {
-      if (!e.date) return;
-      const key = getDayKey(e.date);
-      ensureDay(key);
-      const avg = e.data?.Avg || e.data?.avg;
-      if (avg) dayMap[key].hrVals.push(Number(avg));
-    });
-
-    steps.forEach((e) => {
-      if (!e.date) return;
-      const key = getDayKey(e.date);
-      ensureDay(key);
-      const qty = e.data?.qty;
-      if (qty) dayMap[key].steps += Number(qty);
-    });
-
-    resting.forEach((e) => {
-      if (!e.date) return;
-      const key = getDayKey(e.date);
-      ensureDay(key);
-      const qty = e.data?.qty;
-      if (qty) dayMap[key].restingHR = Number(qty);
-    });
-
-    energy.forEach((e) => {
-      if (!e.date) return;
-      const key = getDayKey(e.date);
-      ensureDay(key);
-      const qty = e.data?.qty;
-      if (qty) dayMap[key].calories += Number(qty);
-    });
-
-    const summaries: DaySummary[] = Object.entries(dayMap)
-      .map(([date, val]) => ({
-        date,
-        avgHR: val.hrVals.length > 0 ? Math.round(val.hrVals.reduce((a, b) => a + b, 0) / val.hrVals.length) : 0,
-        minHR: val.hrVals.length > 0 ? Math.min(...val.hrVals) : 0,
-        maxHR: val.hrVals.length > 0 ? Math.max(...val.hrVals) : 0,
-        restingHR: val.restingHR,
-        totalSteps: Math.round(val.steps),
-        totalCalories: Math.round(val.calories),
-        hrReadings: val.hrVals.length,
-      }))
-      .sort((a, b) => b.date.localeCompare(a.date));
-
-    setDaySummaries(summaries);
-    if (summaries.length > 0) {
-      setSelectedDay(summaries[0].date);
-    }
-  };
-
-  const selectedSummary = daySummaries.find((d) => d.date === selectedDay);
+  const selectedSummary = selectedDay ? dayDataCache[selectedDay]?.summary ?? null : null;
 
   const getHRChartData = () => {
-    if (!selectedDay) return null;
-    const dayEvents = heartRateData
-      .filter((e) => e.date && getDayKey(e.date) === selectedDay)
+    if (!selectedDay || !dayDataCache[selectedDay]) return null;
+    const dayEvents = dayDataCache[selectedDay].hrEvents
+      .slice()
       .sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime());
 
     return {
@@ -193,13 +181,19 @@ const HealthDashboard: React.FC = () => {
     };
   };
 
+  const getCachedSummaries = () =>
+    Object.values(dayDataCache)
+      .map((d) => d.summary)
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 7)
+      .reverse();
+
   const getStepsChartData = () => {
-    const recent = daySummaries.slice(0, 7).reverse();
+    const recent = getCachedSummaries();
     return {
-      labels: recent.map((d) => {
-        const date = new Date(d.date + "T00:00:00");
-        return date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
-      }),
+      labels: recent.map((d) =>
+        new Date(d.date + "T00:00:00").toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })
+      ),
       datasets: [
         {
           label: "Steps",
@@ -214,12 +208,11 @@ const HealthDashboard: React.FC = () => {
   };
 
   const getCaloriesChartData = () => {
-    const recent = daySummaries.slice(0, 7).reverse();
+    const recent = getCachedSummaries();
     return {
-      labels: recent.map((d) => {
-        const date = new Date(d.date + "T00:00:00");
-        return date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
-      }),
+      labels: recent.map((d) =>
+        new Date(d.date + "T00:00:00").toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })
+      ),
       datasets: [
         {
           label: "Calories",
@@ -281,27 +274,26 @@ const HealthDashboard: React.FC = () => {
 
         {/* Day Selector */}
         <div className="day-selector">
-          {daySummaries.slice(0, 7).map((day) => (
+          {availableDays.slice(0, 7).map((date) => (
             <div
-              key={day.date}
-              className={`day-pill ${selectedDay === day.date ? "active" : ""}`}
-              onClick={() => {
-                setSelectedDay(day.date);
-                fetchInsight(day.date);
-              }}
+              key={date}
+              className={`day-pill ${selectedDay === date ? "active" : ""}`}
+              onClick={() => handleDaySelect(date)}
             >
               <span className="day-pill-label">
-                {new Date(day.date + "T00:00:00").toLocaleDateString([], { weekday: "short" })}
+                {new Date(date + "T00:00:00").toLocaleDateString([], { weekday: "short" })}
               </span>
               <span className="day-pill-date">
-                {new Date(day.date + "T00:00:00").toLocaleDateString([], { month: "short", day: "numeric" })}
+                {new Date(date + "T00:00:00").toLocaleDateString([], { month: "short", day: "numeric" })}
               </span>
             </div>
           ))}
         </div>
 
         {/* Metric Cards */}
-        {selectedSummary && (
+        {dayLoading ? (
+          <div className="health-loading">Loading day data...</div>
+        ) : selectedSummary ? (
           <div className="metric-cards">
             <div className="metric-card hr-card">
               <div className="metric-card-header">
@@ -343,13 +335,18 @@ const HealthDashboard: React.FC = () => {
               <div className="metric-unit">kcal</div>
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* AI Insights */}
         <div className="insight-card">
           <div className="insight-header">
             <span className="insight-icon">✦</span>
             <span className="insight-title">AI Health Insights</span>
+            {selectedDay && !insightLoading && !insight && (
+              <button className="insight-load-btn" onClick={() => fetchInsight(selectedDay)}>
+                Load Insights
+              </button>
+            )}
           </div>
           {insightLoading ? (
             <div className="insight-loading">
@@ -390,7 +387,7 @@ const HealthDashboard: React.FC = () => {
 
         <div className="health-charts">
           <div className="health-chart-box">
-            <h3 className="chart-title">Daily Steps (Last 7 Days)</h3>
+            <h3 className="chart-title">Daily Steps (Visited Days)</h3>
             <div className="chart-container">
               {stepsChart && stepsChart.labels.length > 0 ? (
                 <Bar data={stepsChart} options={chartOptions} />
@@ -401,7 +398,7 @@ const HealthDashboard: React.FC = () => {
           </div>
 
           <div className="health-chart-box">
-            <h3 className="chart-title">Active Energy (Last 7 Days)</h3>
+            <h3 className="chart-title">Active Energy (Visited Days)</h3>
             <div className="chart-container">
               {caloriesChart && caloriesChart.labels.length > 0 ? (
                 <Bar data={caloriesChart} options={chartOptions} />

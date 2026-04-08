@@ -337,6 +337,22 @@
     background: linear-gradient(90deg, #818cf8, #a78bfa, #c084fc);
   }
   
+  .insight-load-btn {
+    margin-left: auto;
+    background: none;
+    border: 1px solid rgba(129, 140, 248, 0.5);
+    color: #818cf8;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .insight-load-btn:hover {
+    background: rgba(129, 140, 248, 0.15);
+  }
+
   .insight-header {
     display: flex;
     align-items: center;
