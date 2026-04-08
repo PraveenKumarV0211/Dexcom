@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Line} from "react-chartjs-2";
-import.meta.env.graph_durationBased_data_endpoint;
 import "../Graph/GraphStyle.css"
 import {
   Chart as ChartJS,
@@ -137,7 +136,9 @@ const Graph = ({ duration , setDuration}) => {
         <div className="chart-Info">
           Showing {readings.length} readings from last {duration} hours
         </div>
-        <Line data={chartData} options={chartOptions} />
+        <div className="chart-canvas-wrapper">
+          <Line data={chartData} options={chartOptions} />
+        </div>
       </div>
     </div>
   );

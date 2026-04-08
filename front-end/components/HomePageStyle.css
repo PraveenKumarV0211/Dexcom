@@ -46,8 +46,8 @@ body {
 }
 
 .line-box {
-    flex: 1;
-    width: 67vw;
+    flex: 2;
+    min-width: 0;
     height: 50vh;
     display: flex;
     flex-direction: column;
@@ -59,10 +59,9 @@ body {
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.05);
     overflow: hidden;
-    margin-right: auto;
 }
 
-.pie_box {
+.pie-box {
     flex: 1;
     min-width: 300px;
     height: 50vh;
