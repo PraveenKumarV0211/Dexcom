@@ -1,0 +1,96 @@
+.dg-container {
+    background: rgba(30, 41, 59, 0.5);
+    backdrop-filter: blur(16px);
+    border-radius: 14px;
+    padding: 12px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    flex-shrink: 0;
+    margin-bottom: 8px;
+}
+
+.dg-title-row {
+    margin-bottom: 10px;
+}
+
+.dg-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.dg-rings {
+    display: flex;
+    justify-content: space-around;
+    gap: 12px;
+}
+
+.dg-ring-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.dg-ring-wrap {
+    position: relative;
+    width: 64px;
+    height: 64px;
+}
+
+.dg-ring-svg {
+    width: 100%;
+    height: 100%;
+}
+
+.dg-ring-fill {
+    transition: stroke-dashoffset 0.8s ease;
+}
+
+.dg-ring-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.dg-ring-icon {
+    animation: goalBounce 2s ease-in-out infinite;
+}
+
+@keyframes goalBounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.dg-ring-info {
+    text-align: center;
+}
+
+.dg-ring-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.dg-ring-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.65rem;
+    color: #94a3b8;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+}
+
+.dg-ring-detail {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.58rem;
+    color: #475569;
+    margin-top: 1px;
+}
