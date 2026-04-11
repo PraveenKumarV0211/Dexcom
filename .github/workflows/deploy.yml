@@ -73,6 +73,7 @@ jobs:
             DB_HOST=${DB_HOST}
             DEXCOM_CLIENT_ID=${DEXCOM_CLIENT_ID}
             DEXCOM_CLIENT_SECRET=${DEXCOM_CLIENT_SECRET}
+            DEXCOM_REDIRECT_URL=${DEXCOM_REDIRECT_URL}
             SNS_TOPIC_ARN=${SNS_TOPIC_ARN}
             GROK_TOKEN=${GROK_TOKEN}
             GEMINI_KEY=${GEMINI_KEY}
@@ -87,6 +88,7 @@ jobs:
           DB_HOST: ${{ secrets.DB_HOST }}
           DEXCOM_CLIENT_ID: ${{ secrets.DEXCOM_CLIENT_ID }}
           DEXCOM_CLIENT_SECRET: ${{ secrets.DEXCOM_CLIENT_SECRET }}
+          DEXCOM_REDIRECT_URL: ${{ DEXCOM_REDIRECT_URL }}
           SNS_TOPIC_ARN: ${{ secrets.SNS_TOPIC_ARN }}
           GROK_TOKEN: ${{ secrets.GROK_TOKEN }}
           GEMINI_KEY: ${{ secrets.GEMINI_KEY }}

@@ -38,6 +38,14 @@ public class DexcomApiService {
     private String accessToken;
     private String refreshToken;
 
+    public String getClientId() {
+        return clientId;
+    }
+
+    public String getRedirectUri() {
+        return redirectUri;
+    }
+
     public DexcomApiService(GlucoseKafkaProducer kafkaProducer) {
         this.kafkaProducer = kafkaProducer;
     }
@@ -95,7 +103,7 @@ public class DexcomApiService {
 
         try {
             Instant now = Instant.now();
-            Instant start = now.minus(24, ChronoUnit.HOURS);
+            Instant start = now.minus(10, ChronoUnit.MINUTES);
             String startDate = start.toString().replace("Z", "");
             String endDate = now.toString().replace("Z", "");
 

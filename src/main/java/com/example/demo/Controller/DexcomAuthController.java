@@ -31,4 +31,13 @@ public class DexcomAuthController {
         glucoseAlertConsumer.sendDailyDigest();
         return "Digest sent";
     }
+    @GetMapping("/api/dexcom/authorize")
+    public String authorize() {
+        String authUrl = "https://api.dexcom.com/v2/oauth2/login"
+                + "?client_id=" + dexcomApiService.getClientId()
+                + "&redirect_uri=" + dexcomApiService.getRedirectUri()
+                + "&response_type=code"
+                + "&scope=offline_access";
+        return "<a href=\"" + authUrl + "\">Click here to authorize with Dexcom</a>";
+    }
 }
