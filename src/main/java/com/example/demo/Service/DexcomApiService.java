@@ -51,7 +51,7 @@ public class DexcomApiService {
     }
 
     public String exchangeCode(String code) {
-        String tokenUrl = baseUrl + "/v2/oauth2/token";
+        String tokenUrl = baseUrl + "/v3/oauth2/token";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -74,7 +74,7 @@ public class DexcomApiService {
     }
 
     private void refreshAccessToken() {
-        String tokenUrl = baseUrl + "/v2/oauth2/token";
+        String tokenUrl = baseUrl + "/v3/oauth2/token";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);

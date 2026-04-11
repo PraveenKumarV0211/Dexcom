@@ -33,7 +33,7 @@ public class DexcomAuthController {
     }
     @GetMapping("/api/dexcom/authorize")
     public String authorize() {
-        String authUrl = "https://api.dexcom.com/v2/oauth2/login"
+        String authUrl = "https://api.dexcom.com/v3/oauth2/login"
                 + "?client_id=" + dexcomApiService.getClientId()
                 + "&redirect_uri=" + dexcomApiService.getRedirectUri()
                 + "&response_type=code"
