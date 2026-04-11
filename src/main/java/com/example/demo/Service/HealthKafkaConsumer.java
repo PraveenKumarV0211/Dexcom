@@ -30,6 +30,7 @@ public class HealthKafkaConsumer {
     public void consumeSleep(Map<String, Object> record) {
         saveEvent("sleep", record);
     }
+
     @KafkaListener(topics = "resting-heart-rate", groupId = "health-mongo-group")
     public void consumeRestingHR(Map<String, Object> record) {
         saveEvent("resting_heart_rate", record);
@@ -49,6 +50,9 @@ public class HealthKafkaConsumer {
     public void consumeDistance(Map<String, Object> record) {
         saveEvent("walking_running_distance", record);
     }
+
+    @KafkaListener(topics = "exercise-time", groupId = "health-mongo-group")
+    public void consumeExerciseTime(Map<String, Object> record) {saveEvent("exercise_time", record);}
 
     private void saveEvent(String type, Map<String, Object> record) {
         try {

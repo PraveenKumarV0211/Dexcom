@@ -34,6 +34,7 @@ public class HealthDataController {
                 case "respiratory_rate" -> "respiratory-rate";
                 case "active_energy" -> "active-energy";
                 case "walking_running_distance" -> "walking-running-distance";
+                case "apple_exercise_time" -> "exercise-time";
                 default -> "health-events";
             };
 

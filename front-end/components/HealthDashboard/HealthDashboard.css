@@ -27,11 +27,11 @@
 .homepage-container .main-content {
     width: 100%;
     padding: 14px 24px;
-    height: 100vh;
+    min-height: 100vh;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 /* ── Day Slider ── */
@@ -144,7 +144,7 @@
 
 .metric-cards-compact {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
     width: 50%;
     flex-shrink: 0;
@@ -174,6 +174,8 @@
 .resting-card::after { background: linear-gradient(90deg, #a78bfa, #c4b5fd); }
 .steps-card::after { background: linear-gradient(90deg, #22c55e, #4ade80); }
 .calories-card::after { background: linear-gradient(90deg, #fb923c, #fdba74); }
+.distance-card::after { background: linear-gradient(90deg, #38bdf8, #7dd3fc); }
+.exercise-card::after { background: linear-gradient(90deg, #f472b6, #f9a8d4); }
 
 .metric-card:hover {
     border-color: rgba(255, 255, 255, 0.08);
@@ -193,6 +195,8 @@
 .resting-dot { background: #a78bfa; box-shadow: 0 0 8px rgba(167, 139, 250, 0.5); }
 .steps-dot { background: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.5); }
 .calories-dot { background: #fb923c; box-shadow: 0 0 8px rgba(251, 146, 60, 0.5); }
+.distance-dot { background: #38bdf8; box-shadow: 0 0 8px rgba(56, 189, 248, 0.5); }
+.exercise-dot { background: #f472b6; box-shadow: 0 0 8px rgba(244, 114, 182, 0.5); }
 
 .metric-label {
     font-family: 'DM Sans', sans-serif;
@@ -217,6 +221,8 @@
 .resting-card .metric-value { color: #c4b5fd; }
 .steps-card .metric-value { color: #4ade80; }
 .calories-card .metric-value { color: #fdba74; }
+.distance-card .metric-value { color: #7dd3fc; }
+.exercise-card .metric-value { color: #f9a8d4; }
 
 .metric-unit {
     font-family: 'DM Sans', sans-serif;
@@ -249,7 +255,7 @@
     display: flex;
     flex-direction: column;
     min-height: 180px;
-    max-height: 220px;
+    max-height: 300px;
 }
 
 .insight-card::after {
@@ -420,6 +426,7 @@
     flex: 1;
     min-height: 0;
     position: relative;
+    padding-bottom: 8px;
 }
 
 .no-data {

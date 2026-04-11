@@ -35,6 +35,8 @@ interface DaySummary {
   totalSteps: number;
   totalCalories: number;
   hrReadings: number;
+  totalDistance: number;
+  exerciseTime: number;
 }
 
 interface DayData {
@@ -78,17 +80,21 @@ const HealthDashboard: React.FC = () => {
     if (dayDataCache[date]) return;
     setDayLoading(true);
     try {
-      const [hrRes, stepsRes, restingRes, energyRes] = await Promise.all([
+      const [hrRes, stepsRes, restingRes, energyRes, distanceRes, exerciseRes] = await Promise.all([
         fetch(`/api/health-events/heart_rate?date=${date}`),
         fetch(`/api/health-events/steps?date=${date}`),
         fetch(`/api/health-events/resting_heart_rate?date=${date}`),
         fetch(`/api/health-events/active_energy?date=${date}`),
+        fetch(`/api/health-events/walking_running_distance?date=${date}`),
+        fetch(`/api/health-events/exercise_time?date=${date}`),
       ]);
       const hr: HealthEvent[] = await hrRes.json();
       const steps: HealthEvent[] = await stepsRes.json();
       const resting: HealthEvent[] = await restingRes.json();
       const energy: HealthEvent[] = await energyRes.json();
-      const summary = buildDaySummary(date, hr, steps, resting, energy);
+      const distance: HealthEvent[] = await distanceRes.json();
+      const exercise: HealthEvent[] = await exerciseRes.json();
+      const summary = buildDaySummary(date, hr, steps, resting, energy, distance, exercise);
       setDayDataCache((prev) => ({ ...prev, [date]: { summary, hrEvents: hr } }));
     } catch (e) {
       console.error(`Failed to fetch data for ${date}`, e);
@@ -97,11 +103,13 @@ const HealthDashboard: React.FC = () => {
     }
   };
 
-  const buildDaySummary = (date: string, hr: HealthEvent[], steps: HealthEvent[], resting: HealthEvent[], energy: HealthEvent[]): DaySummary => {
+  const buildDaySummary = (date: string, hr: HealthEvent[], steps: HealthEvent[], resting: HealthEvent[], energy: HealthEvent[], distance: HealthEvent[], exercise: HealthEvent[]): DaySummary => {
     const hrVals = hr.map((e) => Number(e.data?.Avg || e.data?.avg || 0)).filter((v) => v > 0);
     const totalSteps = steps.reduce((sum, e) => sum + Number(e.data?.qty || 0), 0);
     const restingHR = resting.length > 0 ? Number(resting[0].data?.qty || 0) : 0;
     const totalCalories = energy.reduce((sum, e) => sum + Number(e.data?.qty || 0), 0);
+    const totalDistance = distance.reduce((sum, e) => sum + Number(e.data?.qty || 0), 0);
+    const exerciseTime = exercise.reduce((sum, e) => sum + Number(e.data?.qty || 0), 0);
     return {
       date,
       avgHR: hrVals.length > 0 ? Math.round(hrVals.reduce((a, b) => a + b, 0) / hrVals.length) : 0,
@@ -111,6 +119,8 @@ const HealthDashboard: React.FC = () => {
       totalSteps: Math.round(totalSteps),
       totalCalories: Math.round(totalCalories),
       hrReadings: hrVals.length,
+      totalDistance: Math.round(totalDistance * 100) / 100,
+      exerciseTime: Math.round(exerciseTime),
     };
   };
   const getActiveMinutes = (): number => {
@@ -254,6 +264,16 @@ const HealthDashboard: React.FC = () => {
                     <div className="metric-card-header"><span className="metric-dot calories-dot"></span><span className="metric-label">Active Energy</span></div>
                     <div className="metric-value">{selectedSummary.totalCalories.toLocaleString()}</div>
                     <div className="metric-unit">kcal</div>
+                  </div>
+                  <div className="metric-card distance-card">
+                    <div className="metric-card-header"><span className="metric-dot distance-dot"></span><span className="metric-label">Distance</span></div>
+                    <div className="metric-value">{selectedSummary.totalDistance.toLocaleString()}</div>
+                    <div className="metric-unit">km</div>
+                  </div>
+                  <div className="metric-card exercise-card">
+                    <div className="metric-card-header"><span className="metric-dot exercise-dot"></span><span className="metric-label">Exercise Time</span></div>
+                    <div className="metric-value">{selectedSummary.exerciseTime}</div>
+                    <div className="metric-unit">min</div>
                   </div>
                 </div>
 
