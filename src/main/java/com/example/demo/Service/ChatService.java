@@ -49,9 +49,9 @@ public class ChatService {
                         + " mg/dL at " + latest.getDateTime() + "\n\n"
                         + buildHistoryContext(history)
                         + "User question: " + userQuestion;
-                List<String> knowledge = List.of();
-                try { knowledge = knowledgeService.search("glucose reading", 3); } catch (Exception e) {}
-                return groqService.call(buildSystemPrompt(knowledge), dataPrompt);
+                return groqService.call(
+                        "You are a diabetic health assistant. Answer concisely using only the data provided.",
+                        dataPrompt);
             }
         }
 
@@ -261,10 +261,9 @@ public class ChatService {
             dataPrompt.append(buildHistoryContext(history));
             dataPrompt.append("User question: ").append(userQuestion);
 
-            List<String> knowledge = List.of();
-            try { knowledge = knowledgeService.search("a1c hba1c glucose management target", 3); } catch (Exception e) {}
-
-            String answer = groqService.call(buildSystemPrompt(knowledge), dataPrompt.toString());
+            String answer = groqService.call(
+                    "You are a diabetic health assistant. Answer concisely using only the data provided.",
+                    dataPrompt.toString());
             autoSaveFinding(userQuestion, answer);
             return answer;
         }
