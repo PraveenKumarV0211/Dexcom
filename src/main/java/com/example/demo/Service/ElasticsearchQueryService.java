@@ -12,8 +12,16 @@ public class ElasticsearchQueryService {
 
     private final RestTemplate restTemplate = new RestTemplate();
     private static final String ES_URL = "http://localhost:9200";
+    private static final long CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+    private String cachedContext = null;
+    private long cacheExpiry = 0;
 
     public String getMultiSignalContext(String startTime, String endTime) {
+        if (startTime == null && endTime == null
+                && cachedContext != null && System.currentTimeMillis() < cacheExpiry) {
+            return cachedContext;
+        }
         try {
             Map<String, Object> glucoseStats = getStatsByType("glucose", "value");
             Map<String, Object> hrStats = getStatsByType("heart_rate", "Avg");
@@ -44,7 +52,12 @@ public class ElasticsearchQueryService {
                 context.append("  Readings: ").append(stepStats.get("count")).append("\n\n");
             }
 
-            return context.toString();
+            String result = context.toString();
+            if (startTime == null && endTime == null) {
+                cachedContext = result;
+                cacheExpiry = System.currentTimeMillis() + CACHE_TTL_MS;
+            }
+            return result;
         } catch (Exception e) {
             System.err.println("ES query error: " + e.getMessage());
             return "";
