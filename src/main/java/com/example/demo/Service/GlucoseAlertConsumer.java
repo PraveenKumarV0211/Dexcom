@@ -12,17 +12,17 @@ public class GlucoseAlertConsumer {
 
     private final SnsAlertService snsAlertService;
     private final ElasticsearchQueryService esQueryService;
-    private final GeminiService geminiService;
+    private final GroqService groqService;
     private final LinkedList<Integer> recentReadings = new LinkedList<>();
     private boolean highAlertSent = false;
     private boolean lowAlertSent = false;
 
     public GlucoseAlertConsumer(SnsAlertService snsAlertService,
                                 ElasticsearchQueryService esQueryService,
-                                GeminiService geminiService) {
+                                GroqService groqService) {
         this.snsAlertService = snsAlertService;
         this.esQueryService = esQueryService;
-        this.geminiService = geminiService;
+        this.groqService = groqService;
     }
 
     @KafkaListener(topics = "glucose-readings", groupId = "alert-group")
@@ -65,7 +65,7 @@ public class GlucoseAlertConsumer {
         try {
             String multiSignal = esQueryService.getMultiSignalContext(null, null);
 
-            String summary = geminiService.call(
+            String summary = groqService.call(
                     "You are a health assistant. Write a brief daily health digest email based on the data below. "
                             + "Include: glucose summary (avg, min, max, time in range), heart rate summary, step count. "
                             + "Keep it concise and friendly. End with one actionable tip.",

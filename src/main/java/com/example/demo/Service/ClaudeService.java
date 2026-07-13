@@ -9,31 +9,37 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class GeminiService {
+public class ClaudeService {
 
-    @Value("${grok.api.token}")
-    private String groqKey;
+    @Value("${claude.api.key}")
+    private String claudeKey;
+
+    private static final String MODEL = "claude-sonnet-4-6";
+    private static final int MAX_TOKENS = 2048;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
     public String call(String systemPrompt, String userMessage) {
-        String url = "https://api.groq.com/openai/v1/chat/completions";
+        String url = "https://api.anthropic.com/v1/messages";
 
         Map<String, Object> body = Map.of(
-                "model", "llama-3.3-70b-versatile",
+                "model", MODEL,
+                "max_tokens", MAX_TOKENS,
+                "system", systemPrompt,
                 "messages", List.of(
-                        Map.of("role", "system", "content", systemPrompt),
                         Map.of("role", "user", "content", userMessage)
                 )
         );
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(groqKey);
+        headers.set("x-api-key", claudeKey);
+        headers.set("anthropic-version", "2023-06-01");
         headers.setContentType(MediaType.APPLICATION_JSON);
+
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
         ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
-        List<Map> choices = (List<Map>) response.getBody().get("choices");
-        Map message = (Map) choices.get(0).get("message");
-        return (String) message.get("content");
+
+        List<Map<String, Object>> content = (List<Map<String, Object>>) response.getBody().get("content");
+        return (String) content.get(0).get("text");
     }
 }

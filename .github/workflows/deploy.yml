@@ -67,7 +67,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: DB_HOST,DEXCOM_CLIENT_ID,DEXCOM_REDIRECT_URL,DEXCOM_CLIENT_SECRET,SNS_TOPIC_ARN,GROK_TOKEN,GEMINI_KEY,HF_TOKEN
+          envs: DB_HOST,DEXCOM_CLIENT_ID,DEXCOM_REDIRECT_URL,DEXCOM_CLIENT_SECRET,SNS_TOPIC_ARN,GROK_TOKEN,GEMINI_KEY,HF_TOKEN,CLAUDE_API_KEY
           script: |
             cat > /opt/glucolens/.env <<EOF
             DB_HOST=${DB_HOST}
@@ -78,6 +78,7 @@ jobs:
             GROK_TOKEN=${GROK_TOKEN}
             GEMINI_KEY=${GEMINI_KEY}
             HF_TOKEN=${HF_TOKEN}
+            CLAUDE_API_KEY=${CLAUDE_API_KEY}
             EOF
             chmod 600 /opt/glucolens/.env
             cd /opt/glucolens
@@ -93,3 +94,4 @@ jobs:
           GROK_TOKEN: ${{ secrets.GROK_TOKEN }}
           GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}

@@ -29,7 +29,10 @@ public class ChatService {
     private KnowledgeService knowledgeService;
 
     @Autowired
-    private GeminiService geminiService;
+    private GroqService groqService;
+
+    @Autowired
+    private ClaudeService claudeService;
 
     @Autowired
     private ElasticsearchQueryService esQueryService;
@@ -48,7 +51,7 @@ public class ChatService {
                         + "User question: " + userQuestion;
                 List<String> knowledge = List.of();
                 try { knowledge = knowledgeService.search("glucose reading", 3); } catch (Exception e) {}
-                return geminiService.call(buildSystemPrompt(knowledge), dataPrompt);
+                return groqService.call(buildSystemPrompt(knowledge), dataPrompt);
             }
         }
 
@@ -78,7 +81,7 @@ public class ChatService {
             }
             dataPrompt.append(buildHistoryContext(history));
             dataPrompt.append("User question: ").append(userQuestion);
-            return geminiService.call(buildSystemPrompt(knowledge), dataPrompt.toString());
+            return claudeService.call(buildSystemPrompt(knowledge), dataPrompt.toString());
         }
 
         // Extract intent using LLM
@@ -103,7 +106,7 @@ public class ChatService {
 
             String systemPrompt = buildSystemPrompt(knowledge);
             String dataPrompt = buildDataPrompt(glucoseMap, userQuestion, history);
-            String answer = geminiService.call(systemPrompt, dataPrompt);
+            String answer = claudeService.call(systemPrompt, dataPrompt);
             autoSaveFinding(userQuestion, answer);
             return answer;
         }
@@ -156,7 +159,7 @@ public class ChatService {
             List<String> knowledge = List.of();
             try { knowledge = knowledgeService.search("glucose time of day pattern morning evening", 3); } catch (Exception e) {}
 
-            String answer = geminiService.call(buildSystemPrompt(knowledge), dataPrompt.toString());
+            String answer = claudeService.call(buildSystemPrompt(knowledge), dataPrompt.toString());
             autoSaveFinding(userQuestion, answer);
             return answer;
         }
@@ -220,7 +223,7 @@ public class ChatService {
             List<String> knowledge = List.of();
             try { knowledge = knowledgeService.search("meal type breakfast dinner glucose spike", 3); } catch (Exception e) {}
 
-            String answer = geminiService.call(buildSystemPrompt(knowledge), dataPrompt.toString());
+            String answer = claudeService.call(buildSystemPrompt(knowledge), dataPrompt.toString());
             autoSaveFinding(userQuestion, answer);
             return answer;
         }
@@ -261,7 +264,7 @@ public class ChatService {
             List<String> knowledge = List.of();
             try { knowledge = knowledgeService.search("a1c hba1c glucose management target", 3); } catch (Exception e) {}
 
-            String answer = geminiService.call(buildSystemPrompt(knowledge), dataPrompt.toString());
+            String answer = groqService.call(buildSystemPrompt(knowledge), dataPrompt.toString());
             autoSaveFinding(userQuestion, answer);
             return answer;
         }
@@ -301,7 +304,7 @@ public class ChatService {
             List<String> knowledge = List.of();
             try { knowledge = knowledgeService.search("glucose trend improvement", 3); } catch (Exception e) {}
 
-            String answer = geminiService.call(buildSystemPrompt(knowledge), dataPrompt.toString());
+            String answer = claudeService.call(buildSystemPrompt(knowledge), dataPrompt.toString());
             autoSaveFinding(userQuestion, answer);
             return answer;
         }
@@ -309,7 +312,7 @@ public class ChatService {
         // General fallback
         List<String> knowledge = List.of();
         try { knowledge = knowledgeService.search(userQuestion, 5); } catch (Exception e) {}
-        String answer = geminiService.call(buildSystemPrompt(knowledge), buildHistoryContext(history) + "User question: " + userQuestion);
+        String answer = claudeService.call(buildSystemPrompt(knowledge), buildHistoryContext(history) + "User question: " + userQuestion);
         autoSaveFinding(userQuestion, answer);
         return answer;
     }
@@ -322,7 +325,7 @@ public class ChatService {
         try {
             String today = LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
             String historyContext = buildHistoryContext(history);
-            String json = geminiService.call(
+            String json = groqService.call(
                     "Today's date is " + today + ". " +
                             "Extract intent from the user's question about their glucose/food data. " +
                             "Use the conversation history to resolve references like 'that one', 'it', 'the same', etc. "+
@@ -432,7 +435,7 @@ public class ChatService {
 
     private void autoSaveFinding(String question, String answer) {
         try {
-            String finding = geminiService.call(
+            String finding = groqService.call(
                     "Summarize the key finding from this Q&A in one short sentence. " +
                             "Focus on the personal health insight. Respond with ONLY the sentence, nothing else.",
                     "Question: " + question + "\nAnswer: " + answer
