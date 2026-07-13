@@ -11,6 +11,7 @@ interface Message {
 
 const ChatPage: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [conversationSummary, setConversationSummary] = useState("");
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -35,12 +36,14 @@ const ChatPage: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: userMessage.content,
-          history: updatedMessages.slice(-10)
+          history: updatedMessages.slice(-6),
+          summary: conversationSummary
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
+        setConversationSummary(data.updatedSummary ?? "");
         setMessages((prev) => [
           ...prev,
           { role: "assistant", content: data.answer },

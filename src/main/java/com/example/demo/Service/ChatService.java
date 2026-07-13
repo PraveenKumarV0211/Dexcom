@@ -37,7 +37,8 @@ public class ChatService {
     @Autowired
     private ElasticsearchQueryService esQueryService;
 
-    public String chat(String userQuestion, List<Map<String, String>> history) {
+    public Map<String, String> chat(String userQuestion, List<Map<String, String>> history, String summary) {
+        String updatedSummary = updateSummary(summary, history);
         String lowerQuestion = userQuestion.toLowerCase();
 
         // Handle last reading
@@ -47,11 +48,12 @@ public class ChatService {
             if (latest != null) {
                 String dataPrompt = "USER DATA:\nLatest glucose reading: " + latest.getGlucose()
                         + " mg/dL at " + latest.getDateTime() + "\n\n"
-                        + buildHistoryContext(history)
+                        + buildHistoryContext(history, summary)
                         + "User question: " + userQuestion;
-                return groqService.call(
+                String answer = groqService.call(
                         "You are a diabetic health assistant. Answer concisely using only the data provided.",
                         dataPrompt);
+                return Map.of("answer", answer, "updatedSummary", updatedSummary);
             }
         }
 
@@ -79,13 +81,14 @@ public class ChatService {
                 dataPrompt.append("Max: ").append(max).append(" mg/dL\n");
                 dataPrompt.append("Time above 180 mg/dL: ").append(String.format("%.1f", abovePct)).append("%\n\n");
             }
-            dataPrompt.append(buildHistoryContext(history));
+            dataPrompt.append(buildHistoryContext(history, summary));
             dataPrompt.append("User question: ").append(userQuestion);
-            return claudeService.call(buildSystemPrompt(knowledge), dataPrompt.toString());
+            String answer = claudeService.call(buildSystemPrompt(knowledge), dataPrompt.toString());
+            return Map.of("answer", answer, "updatedSummary", updatedSummary);
         }
 
         // Extract intent using LLM
-        ChatIntent intent = extractIntent(userQuestion,history);
+        ChatIntent intent = extractIntent(userQuestion, history, summary);
 
         List<FoodLog> meals = List.of();
 
@@ -105,18 +108,18 @@ public class ChatService {
             try { knowledge = knowledgeService.search(intent.getFood() + " glucose spike", 5); } catch (Exception e) {}
 
             String systemPrompt = buildSystemPrompt(knowledge);
-            String dataPrompt = buildDataPrompt(glucoseMap, userQuestion, history);
+            String dataPrompt = buildDataPrompt(glucoseMap, userQuestion, history, summary);
             String answer = claudeService.call(systemPrompt, dataPrompt);
             autoSaveFinding(userQuestion, answer);
-            return answer;
+            return Map.of("answer", answer, "updatedSummary", updatedSummary);
         }
+
         // Time of day analysis
         if ("time_of_day".equals(intent.getType())) {
             Date monthStart = toDate(LocalDateTime.now().minusDays(30));
             Date now = toDate(LocalDateTime.now());
             List<Glucose> allReadings = glucoseRepo.findByDateTimeBetween(monthStart, now);
 
-            // Group by time of day
             Map<String, List<Integer>> grouped = new LinkedHashMap<>();
             grouped.put("Morning (6AM-12PM)", new ArrayList<>());
             grouped.put("Afternoon (12PM-5PM)", new ArrayList<>());
@@ -153,14 +156,14 @@ public class ChatService {
                     dataPrompt.append("  Above 180: ").append(String.format("%.1f", abovePct)).append("%\n\n");
                 }
             }
-            dataPrompt.append(buildHistoryContext(history));
+            dataPrompt.append(buildHistoryContext(history, summary));
             dataPrompt.append("User question: ").append(userQuestion);
 
             String answer = claudeService.call(buildSystemPrompt(List.of()), dataPrompt.toString());
-            return answer;
+            return Map.of("answer", answer, "updatedSummary", updatedSummary);
         }
 
-// Meal type comparison
+        // Meal type comparison
         if ("meal_type".equals(intent.getType())) {
             List<FoodLog> allLogs = foodLogRepo.findAll();
 
@@ -213,14 +216,14 @@ public class ChatService {
                     dataPrompt.append("  No meals tracked\n\n");
                 }
             }
-            dataPrompt.append(buildHistoryContext(history));
+            dataPrompt.append(buildHistoryContext(history, summary));
             dataPrompt.append("User question: ").append(userQuestion);
 
             String answer = claudeService.call(buildSystemPrompt(List.of()), dataPrompt.toString());
-            return answer;
+            return Map.of("answer", answer, "updatedSummary", updatedSummary);
         }
 
-// A1C estimation
+        // A1C estimation
         if ("a1c".equals(intent.getType())) {
             Date threeMonthsAgo = toDate(LocalDateTime.now().minusDays(90));
             Date now = toDate(LocalDateTime.now());
@@ -230,7 +233,6 @@ public class ChatService {
 
             if (!readings.isEmpty()) {
                 double avg = readings.stream().mapToInt(Glucose::getGlucose).average().orElse(0);
-                // A1C formula: (avg glucose + 46.7) / 28.7
                 double estimatedA1c = (avg + 46.7) / 28.7;
 
                 int min = readings.stream().mapToInt(Glucose::getGlucose).min().orElse(0);
@@ -250,14 +252,14 @@ public class ChatService {
             } else {
                 dataPrompt.append("No glucose readings found for the last 90 days.\n\n");
             }
-            dataPrompt.append(buildHistoryContext(history));
+            dataPrompt.append(buildHistoryContext(history, summary));
             dataPrompt.append("User question: ").append(userQuestion);
 
             String answer = groqService.call(
                     "You are a diabetic health assistant. Answer concisely using only the data provided.",
                     dataPrompt.toString());
             autoSaveFinding(userQuestion, answer);
-            return answer;
+            return Map.of("answer", answer, "updatedSummary", updatedSummary);
         }
 
         // Time based OR comparison — unified handler
@@ -276,7 +278,6 @@ public class ChatService {
                 appendStats(dataPrompt, readings, foodLogs);
             }
 
-            // Comparison second period
             if ("comparison".equals(intent.getType()) && intent.getCompStartDate() != null) {
                 Date[] compRange = parseDateRange(intent.getCompStartDate(), intent.getCompEndDate());
                 if (compRange != null) {
@@ -289,29 +290,50 @@ public class ChatService {
                     appendStats(dataPrompt, compReadings, compFoodLogs);
                 }
             }
-            dataPrompt.append(buildHistoryContext(history));
+            dataPrompt.append(buildHistoryContext(history, summary));
             dataPrompt.append("\nUser question: ").append(userQuestion);
 
             String answer = claudeService.call(buildSystemPrompt(List.of()), dataPrompt.toString());
-            return answer;
+            return Map.of("answer", answer, "updatedSummary", updatedSummary);
         }
 
         // General fallback
         List<String> knowledge = List.of();
         try { knowledge = knowledgeService.search(userQuestion, 5); } catch (Exception e) {}
-        String answer = claudeService.call(buildSystemPrompt(knowledge), buildHistoryContext(history) + "User question: " + userQuestion);
+        String answer = claudeService.call(
+                buildSystemPrompt(knowledge),
+                buildHistoryContext(history, summary) + "User question: " + userQuestion);
         autoSaveFinding(userQuestion, answer);
-        return answer;
+        return Map.of("answer", answer, "updatedSummary", updatedSummary);
+    }
+
+    private String updateSummary(String existingSummary, List<Map<String, String>> history) {
+        if (history == null || history.size() < 6) return existingSummary != null ? existingSummary : "";
+        // Oldest exchange = history[0] (user) + history[1] (assistant)
+        String oldestExchange = "User: " + history.get(0).get("content") + "\n"
+                              + "Assistant: " + history.get(1).get("content");
+        String input = (existingSummary == null || existingSummary.isEmpty())
+                ? oldestExchange
+                : "Existing summary: " + existingSummary + "\n\nNew exchange to incorporate:\n" + oldestExchange;
+        try {
+            return groqService.call(
+                    "Update the conversation summary by incorporating the new exchange. " +
+                    "2-3 sentences max. Focus on health insights discussed. Reply with ONLY the updated summary.",
+                    input
+            );
+        } catch (Exception e) {
+            return existingSummary != null ? existingSummary : "";
+        }
     }
 
     private Date toDate(LocalDateTime ldt) {
         return Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
     }
 
-    private ChatIntent extractIntent(String userQuestion, List<Map<String, String>> history) {
+    private ChatIntent extractIntent(String userQuestion, List<Map<String, String>> history, String summary) {
         try {
             String today = LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            String historyContext = buildHistoryContext(history);
+            String historyContext = buildHistoryContext(history, summary);
             String json = groqService.call(
                     "Today's date is " + today + ". " +
                             "Extract intent from the user's question about their glucose/food data. " +
@@ -352,7 +374,6 @@ public class ChatService {
         sb.append("You are a diabetic health assistant with access to multi-signal health data ");
         sb.append("including glucose readings, heart rate, steps, and sleep from the user's devices.\n\n");
 
-        // Add multi-signal context from Elasticsearch
         String multiSignal = esQueryService.getMultiSignalContext(null, null);
         if (!multiSignal.isEmpty()) {
             sb.append(multiSignal);
@@ -378,7 +399,8 @@ public class ChatService {
         return sb.toString();
     }
 
-    private String buildDataPrompt(Map<FoodLog, List<Glucose>> glucoseMap, String question, List<Map<String, String>> history)  {
+    private String buildDataPrompt(Map<FoodLog, List<Glucose>> glucoseMap, String question,
+                                   List<Map<String, String>> history, String summary) {
         StringBuilder sb = new StringBuilder();
 
         if (!glucoseMap.isEmpty()) {
@@ -415,7 +437,7 @@ public class ChatService {
             }
         }
 
-        sb.append(buildHistoryContext(history));
+        sb.append(buildHistoryContext(history, summary));
         sb.append("User question: ").append(question);
         return sb.toString();
     }
@@ -437,67 +459,11 @@ public class ChatService {
             e.printStackTrace();
         }
     }
-    private Date[] getDateRange(List<String> timeRefs) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime start;
-
-        String ref = (timeRefs != null && !timeRefs.isEmpty()) ? timeRefs.get(0) : "today";
-
-        switch (ref) {
-            case "today": start = now.toLocalDate().atStartOfDay(); break;
-            case "yesterday": start = now.minusDays(1).toLocalDate().atStartOfDay(); break;
-            case "this_week": start = now.minusDays(7); break;
-            case "last_3_days": start = now.minusDays(3); break;
-            default: start = now.minusDays(7); break;
-        }
-
-        return new Date[]{ toDate(start), toDate(now) };
-    }
 
     private LocalDateTime toLocalDateTime(Date date) {
         return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
     }
 
-    private String buildTimeBasedPrompt(List<Glucose> readings, List<FoodLog> meals, String question) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("USER DATA:\n\n");
-
-        if (!meals.isEmpty()) {
-            sb.append("FOOD LOGS:\n");
-            for (FoodLog meal : meals) {
-                sb.append("- ").append(meal.getTimestamp()).append(": ")
-                        .append(meal.getFoodName()).append(", ").append(meal.getPortionSize());
-                if (meal.getSource() != null) sb.append(", ").append(meal.getSource());
-                sb.append(" (").append(meal.getMealType()).append(")\n");
-            }
-            sb.append("\n");
-        }
-
-        if (!readings.isEmpty()) {
-            int min = readings.stream().mapToInt(Glucose::getGlucose).min().orElse(0);
-            int max = readings.stream().mapToInt(Glucose::getGlucose).max().orElse(0);
-            double avg = readings.stream().mapToInt(Glucose::getGlucose).average().orElse(0);
-
-            sb.append("GLUCOSE SUMMARY:\n");
-            sb.append("Total readings: ").append(readings.size()).append("\n");
-            sb.append("Min: ").append(min).append(" mg/dL\n");
-            sb.append("Max: ").append(max).append(" mg/dL\n");
-            sb.append("Average: ").append(String.format("%.1f", avg)).append(" mg/dL\n");
-            sb.append("Highest spike: ").append(max).append(" mg/dL\n\n");
-
-            // Include a sample of readings (limit to avoid token overflow)
-            sb.append("READINGS (sampled):\n");
-            int step = Math.max(1, readings.size() / 50);
-            for (int i = 0; i < readings.size(); i += step) {
-                Glucose r = readings.get(i);
-                sb.append("  ").append(r.getDateTime()).append(": ").append(r.getGlucose()).append(" mg/dL\n");
-            }
-            sb.append("\n");
-        }
-
-        sb.append("User question: ").append(question);
-        return sb.toString();
-    }
     private void appendStats(StringBuilder sb, List<Glucose> readings, List<FoodLog> meals) {
         if (!readings.isEmpty()) {
             int min = readings.stream().mapToInt(Glucose::getGlucose).min().orElse(0);
@@ -516,6 +482,7 @@ public class ChatService {
                     .append(" (").append(meal.getMealType()).append(")\n");
         }
     }
+
     private Date[] parseDateRange(String startStr, String endStr) {
         try {
             if (startStr == null || endStr == null) return null;
@@ -527,17 +494,30 @@ public class ChatService {
             return null;
         }
     }
-    private String buildHistoryContext(List<Map<String, String>> history) {
-        if (history == null || history.size() <= 1) return "";
+
+    private String buildHistoryContext(List<Map<String, String>> history, String summary) {
+        boolean hasSummary = summary != null && !summary.isEmpty();
+        boolean hasHistory = history != null && history.size() > 1;
+
+        if (!hasSummary && !hasHistory) return "";
+
         StringBuilder sb = new StringBuilder();
-        sb.append("CONVERSATION HISTORY:\n");
-        for (int i = 0; i < history.size() - 1; i++) {
-            Map<String, String> msg = history.get(i);
-            String role = msg.get("role");
-            sb.append(role.equals("user") ? "User" : "Assistant")
-                    .append(": ").append(msg.get("content")).append("\n");
+
+        if (hasSummary) {
+            sb.append("CONVERSATION SUMMARY:\n").append(summary).append("\n\n");
         }
-        sb.append("\n");
+
+        if (hasHistory) {
+            sb.append(hasSummary ? "RECENT CONVERSATION:\n" : "CONVERSATION HISTORY:\n");
+            for (int i = 0; i < history.size() - 1; i++) {
+                Map<String, String> msg = history.get(i);
+                String role = msg.get("role");
+                sb.append(role.equals("user") ? "User" : "Assistant")
+                        .append(": ").append(msg.get("content")).append("\n");
+            }
+            sb.append("\n");
+        }
+
         return sb.toString();
     }
 }

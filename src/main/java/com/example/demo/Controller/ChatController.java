@@ -19,7 +19,7 @@ public class ChatController {
     public Map<String, String> chat(@RequestBody Map<String, Object> request) {
         String question = (String) request.get("question");
         List<Map<String, String>> history = (List<Map<String, String>>) request.getOrDefault("history", List.of());
-        String answer = chatService.chat(question, history);
-        return Map.of("answer", answer);
+        String summary = (String) request.getOrDefault("summary", "");
+        return chatService.chat(question, history, summary);
     }
 }
