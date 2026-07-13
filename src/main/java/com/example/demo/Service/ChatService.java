@@ -156,11 +156,7 @@ public class ChatService {
             dataPrompt.append(buildHistoryContext(history));
             dataPrompt.append("User question: ").append(userQuestion);
 
-            List<String> knowledge = List.of();
-            try { knowledge = knowledgeService.search("glucose time of day pattern morning evening", 3); } catch (Exception e) {}
-
-            String answer = claudeService.call(buildSystemPrompt(knowledge), dataPrompt.toString());
-            autoSaveFinding(userQuestion, answer);
+            String answer = claudeService.call(buildSystemPrompt(List.of()), dataPrompt.toString());
             return answer;
         }
 
@@ -220,11 +216,7 @@ public class ChatService {
             dataPrompt.append(buildHistoryContext(history));
             dataPrompt.append("User question: ").append(userQuestion);
 
-            List<String> knowledge = List.of();
-            try { knowledge = knowledgeService.search("meal type breakfast dinner glucose spike", 3); } catch (Exception e) {}
-
-            String answer = claudeService.call(buildSystemPrompt(knowledge), dataPrompt.toString());
-            autoSaveFinding(userQuestion, answer);
+            String answer = claudeService.call(buildSystemPrompt(List.of()), dataPrompt.toString());
             return answer;
         }
 
@@ -300,11 +292,7 @@ public class ChatService {
             dataPrompt.append(buildHistoryContext(history));
             dataPrompt.append("\nUser question: ").append(userQuestion);
 
-            List<String> knowledge = List.of();
-            try { knowledge = knowledgeService.search("glucose trend improvement", 3); } catch (Exception e) {}
-
-            String answer = claudeService.call(buildSystemPrompt(knowledge), dataPrompt.toString());
-            autoSaveFinding(userQuestion, answer);
+            String answer = claudeService.call(buildSystemPrompt(List.of()), dataPrompt.toString());
             return answer;
         }
 
