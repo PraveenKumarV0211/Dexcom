@@ -1,29 +1,21 @@
 package com.example.demo.Service;
 
-import com.example.demo.Model.ChatIntent;
-import com.example.demo.Model.FoodLog;
-import com.example.demo.Model.Glucose;
 import com.example.demo.Model.KnowledgeDocument;
-import com.example.demo.Repository.FoodLogRepository;
-import com.example.demo.Repository.GlucoseRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.Calendar;
 
 @Service
 public class ChatService {
 
     @Autowired
-    private FoodLogRepository foodLogRepo;
+    private ClaudeService claudeService;
 
     @Autowired
-    private GlucoseRepository glucoseRepo;
+    private MongoToolService mongoToolService;
 
     @Autowired
     private KnowledgeService knowledgeService;
@@ -32,284 +24,52 @@ public class ChatService {
     private GroqService groqService;
 
     @Autowired
-    private ClaudeService claudeService;
-
-    @Autowired
     private ElasticsearchQueryService esQueryService;
 
     public Map<String, String> chat(String userQuestion, List<Map<String, String>> history, String summary) {
         String updatedSummary = updateSummary(summary, history);
-        String lowerQuestion = userQuestion.toLowerCase();
 
-        // Handle last reading
-        if (lowerQuestion.contains("last reading") || lowerQuestion.contains("latest reading")
-                || lowerQuestion.contains("current reading") || lowerQuestion.contains("recent reading")) {
-            Glucose latest = glucoseRepo.findTopByOrderByDateTimeDesc();
-            if (latest != null) {
-                String dataPrompt = "USER DATA:\nLatest glucose reading: " + latest.getGlucose()
-                        + " mg/dL at " + latest.getDateTime() + "\n\n"
-                        + buildHistoryContext(history, summary)
-                        + "User question: " + userQuestion;
-                String answer = groqService.call(
-                        "You are a diabetic health assistant. Answer concisely using only the data provided.",
-                        dataPrompt);
-                return Map.of("answer", answer, "updatedSummary", updatedSummary);
-            }
+        String today = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String multiSignal = esQueryService.getMultiSignalContext(null, null);
+
+        StringBuilder systemPrompt = new StringBuilder();
+        systemPrompt.append("You are a personalized diabetic health assistant. Today's date is ").append(today).append(".\n\n");
+        systemPrompt.append("You have access to tools to fetch the user's real health data from their MongoDB database:\n");
+        systemPrompt.append("- Glucose readings from their Dexcom CGM sensor\n");
+        systemPrompt.append("- Food logs with nutrition information\n");
+        systemPrompt.append("- Personal health insights from past AI analyses\n\n");
+
+        if (!multiSignal.isEmpty()) {
+            systemPrompt.append(multiSignal).append("\n");
         }
 
-        // Handle personal health questions
-        if (lowerQuestion.contains("complication") || lowerQuestion.contains("condition")
-                || lowerQuestion.contains("about me") || lowerQuestion.contains("my profile")) {
-            Date weekStart = toDate(LocalDateTime.now().minusDays(7));
-            Date now = toDate(LocalDateTime.now());
-            List<Glucose> recentReadings = glucoseRepo.findByDateTimeBetween(weekStart, now);
+        systemPrompt.append("GUIDELINES:\n");
+        systemPrompt.append("- Always fetch real data using tools before answering any health or data question\n");
+        systemPrompt.append("- For food questions: call search_food_logs first, then get_glucose_around_meal for each result\n");
+        systemPrompt.append("- For time-based questions: use get_glucose_readings with the appropriate date range\n");
+        systemPrompt.append("- For pattern questions: use get_time_of_day_patterns or get_meal_type_patterns\n");
+        systemPrompt.append("- Search the knowledge_base for relevant past insights on any topic\n");
+        systemPrompt.append("- Lead with key findings using actual numbers from the data\n");
+        systemPrompt.append("- Use **bold** for important numbers and findings\n");
+        systemPrompt.append("- Be concise and give 1-2 actionable suggestions max\n");
+        systemPrompt.append("- If no data is found, say so clearly rather than guessing\n");
 
-            List<String> knowledge = List.of();
-            try { knowledge = knowledgeService.search("diabetic complications health profile", 5); } catch (Exception e) {}
+        List<Map<String, Object>> messages = new ArrayList<>();
+        String historyContext = buildHistoryContext(history, summary);
+        String userContent = historyContext.isEmpty()
+                ? userQuestion
+                : historyContext + "Current question: " + userQuestion;
+        messages.add(Map.of("role", "user", "content", userContent));
 
-            StringBuilder dataPrompt = new StringBuilder();
-            if (!recentReadings.isEmpty()) {
-                double avg = recentReadings.stream().mapToInt(Glucose::getGlucose).average().orElse(0);
-                int max = recentReadings.stream().mapToInt(Glucose::getGlucose).max().orElse(0);
-                int min = recentReadings.stream().mapToInt(Glucose::getGlucose).min().orElse(0);
-                long aboveTarget = recentReadings.stream().filter(r -> r.getGlucose() > 180).count();
-                double abovePct = (aboveTarget * 100.0) / recentReadings.size();
+        List<Map<String, Object>> tools = mongoToolService.getToolDefinitions();
+        String answer = claudeService.chatWithTools(systemPrompt.toString(), messages, tools, mongoToolService::executeTool);
 
-                dataPrompt.append("USER DATA (last 7 days):\n");
-                dataPrompt.append("Average: ").append(String.format("%.1f", avg)).append(" mg/dL\n");
-                dataPrompt.append("Min: ").append(min).append(" mg/dL\n");
-                dataPrompt.append("Max: ").append(max).append(" mg/dL\n");
-                dataPrompt.append("Time above 180 mg/dL: ").append(String.format("%.1f", abovePct)).append("%\n\n");
-            }
-            dataPrompt.append(buildHistoryContext(history, summary));
-            dataPrompt.append("User question: ").append(userQuestion);
-            String answer = claudeService.call(buildSystemPrompt(knowledge), dataPrompt.toString());
-            return Map.of("answer", answer, "updatedSummary", updatedSummary);
-        }
-
-        // Extract intent using LLM
-        ChatIntent intent = extractIntent(userQuestion, history, summary);
-
-        List<FoodLog> meals = List.of();
-
-        // Food specific
-        if ("food_specific".equals(intent.getType()) && intent.getFood() != null && !intent.getFood().isEmpty()) {
-            List<FoodLog> allMatches = foodLogRepo.findByFoodNameRegex(intent.getFood());
-            meals = allMatches.stream().limit(intent.getLimit()).collect(Collectors.toList());
-
-            Map<FoodLog, List<Glucose>> glucoseMap = new LinkedHashMap<>();
-            for (FoodLog meal : meals) {
-                Date from = toDate(meal.getTimestamp().minusHours(1));
-                Date to = toDate(meal.getTimestamp().plusHours(3));
-                glucoseMap.put(meal, glucoseRepo.findByDateTimeBetween(from, to));
-            }
-
-            List<String> knowledge = List.of();
-            try { knowledge = knowledgeService.search(intent.getFood() + " glucose spike", 5); } catch (Exception e) {}
-
-            String systemPrompt = buildSystemPrompt(knowledge);
-            String dataPrompt = buildDataPrompt(glucoseMap, userQuestion, history, summary);
-            String answer = claudeService.call(systemPrompt, dataPrompt);
-            autoSaveFinding(userQuestion, answer);
-            return Map.of("answer", answer, "updatedSummary", updatedSummary);
-        }
-
-        // Time of day analysis
-        if ("time_of_day".equals(intent.getType())) {
-            Date monthStart = toDate(LocalDateTime.now().minusDays(30));
-            Date now = toDate(LocalDateTime.now());
-            List<Glucose> allReadings = glucoseRepo.findByDateTimeBetween(monthStart, now);
-
-            Map<String, List<Integer>> grouped = new LinkedHashMap<>();
-            grouped.put("Morning (6AM-12PM)", new ArrayList<>());
-            grouped.put("Afternoon (12PM-5PM)", new ArrayList<>());
-            grouped.put("Evening (5PM-9PM)", new ArrayList<>());
-            grouped.put("Night (9PM-6AM)", new ArrayList<>());
-
-            for (Glucose r : allReadings) {
-                Calendar cal = Calendar.getInstance();
-                cal.setTime(r.getDateTime());
-                int hour = cal.get(Calendar.HOUR_OF_DAY);
-
-                if (hour >= 6 && hour < 12) grouped.get("Morning (6AM-12PM)").add(r.getGlucose());
-                else if (hour >= 12 && hour < 17) grouped.get("Afternoon (12PM-5PM)").add(r.getGlucose());
-                else if (hour >= 17 && hour < 21) grouped.get("Evening (5PM-9PM)").add(r.getGlucose());
-                else grouped.get("Night (9PM-6AM)").add(r.getGlucose());
-            }
-
-            StringBuilder dataPrompt = new StringBuilder();
-            dataPrompt.append("USER TIME-OF-DAY GLUCOSE PATTERNS (last 30 days):\n\n");
-
-            for (Map.Entry<String, List<Integer>> entry : grouped.entrySet()) {
-                List<Integer> values = entry.getValue();
-                if (!values.isEmpty()) {
-                    double avg = values.stream().mapToInt(Integer::intValue).average().orElse(0);
-                    int min = values.stream().mapToInt(Integer::intValue).min().orElse(0);
-                    int max = values.stream().mapToInt(Integer::intValue).max().orElse(0);
-                    long aboveTarget = values.stream().filter(v -> v > 180).count();
-                    double abovePct = (aboveTarget * 100.0) / values.size();
-
-                    dataPrompt.append(entry.getKey()).append(":\n");
-                    dataPrompt.append("  Average: ").append(String.format("%.1f", avg)).append(" mg/dL\n");
-                    dataPrompt.append("  Min: ").append(min).append(" | Max: ").append(max).append(" mg/dL\n");
-                    dataPrompt.append("  Readings: ").append(values.size()).append("\n");
-                    dataPrompt.append("  Above 180: ").append(String.format("%.1f", abovePct)).append("%\n\n");
-                }
-            }
-            dataPrompt.append(buildHistoryContext(history, summary));
-            dataPrompt.append("User question: ").append(userQuestion);
-
-            String answer = claudeService.call(buildSystemPrompt(List.of()), dataPrompt.toString());
-            return Map.of("answer", answer, "updatedSummary", updatedSummary);
-        }
-
-        // Meal type comparison
-        if ("meal_type".equals(intent.getType())) {
-            List<FoodLog> allLogs = foodLogRepo.findAll();
-
-            Map<String, List<Integer>> mealSpikes = new LinkedHashMap<>();
-            mealSpikes.put("breakfast", new ArrayList<>());
-            mealSpikes.put("lunch", new ArrayList<>());
-            mealSpikes.put("dinner", new ArrayList<>());
-            mealSpikes.put("snack", new ArrayList<>());
-
-            Map<String, List<String>> mealFoods = new LinkedHashMap<>();
-            mealFoods.put("breakfast", new ArrayList<>());
-            mealFoods.put("lunch", new ArrayList<>());
-            mealFoods.put("dinner", new ArrayList<>());
-            mealFoods.put("snack", new ArrayList<>());
-
-            for (FoodLog meal : allLogs) {
-                if (meal.getMealType() == null || meal.getTimestamp() == null) continue;
-                String type = meal.getMealType().toLowerCase();
-                if (!mealSpikes.containsKey(type)) continue;
-
-                Date from = toDate(meal.getTimestamp());
-                Date to = toDate(meal.getTimestamp().plusHours(3));
-                List<Glucose> readings = glucoseRepo.findByDateTimeBetween(from, to);
-
-                if (!readings.isEmpty()) {
-                    int baseline = readings.get(0).getGlucose();
-                    int peak = readings.stream().mapToInt(Glucose::getGlucose).max().orElse(0);
-                    int spike = peak - baseline;
-                    mealSpikes.get(type).add(spike);
-                    mealFoods.get(type).add(meal.getFoodName() + " (spike: " + spike + ")");
-                }
-            }
-
-            StringBuilder dataPrompt = new StringBuilder();
-            dataPrompt.append("USER MEAL TYPE GLUCOSE IMPACT:\n\n");
-
-            for (String type : mealSpikes.keySet()) {
-                List<Integer> spikes = mealSpikes.get(type);
-                List<String> foods = mealFoods.get(type);
-
-                dataPrompt.append(type.toUpperCase()).append(":\n");
-                if (!spikes.isEmpty()) {
-                    double avgSpike = spikes.stream().mapToInt(Integer::intValue).average().orElse(0);
-                    int maxSpike = spikes.stream().mapToInt(Integer::intValue).max().orElse(0);
-                    dataPrompt.append("  Avg spike: ").append(String.format("%.1f", avgSpike)).append(" mg/dL\n");
-                    dataPrompt.append("  Max spike: ").append(maxSpike).append(" mg/dL\n");
-                    dataPrompt.append("  Meals tracked: ").append(spikes.size()).append("\n");
-                    dataPrompt.append("  Details: ").append(String.join(", ", foods)).append("\n\n");
-                } else {
-                    dataPrompt.append("  No meals tracked\n\n");
-                }
-            }
-            dataPrompt.append(buildHistoryContext(history, summary));
-            dataPrompt.append("User question: ").append(userQuestion);
-
-            String answer = claudeService.call(buildSystemPrompt(List.of()), dataPrompt.toString());
-            return Map.of("answer", answer, "updatedSummary", updatedSummary);
-        }
-
-        // A1C estimation
-        if ("a1c".equals(intent.getType())) {
-            Date threeMonthsAgo = toDate(LocalDateTime.now().minusDays(90));
-            Date now = toDate(LocalDateTime.now());
-            List<Glucose> readings = glucoseRepo.findByDateTimeBetween(threeMonthsAgo, now);
-
-            StringBuilder dataPrompt = new StringBuilder();
-
-            if (!readings.isEmpty()) {
-                double avg = readings.stream().mapToInt(Glucose::getGlucose).average().orElse(0);
-                double estimatedA1c = (avg + 46.7) / 28.7;
-
-                int min = readings.stream().mapToInt(Glucose::getGlucose).min().orElse(0);
-                int max = readings.stream().mapToInt(Glucose::getGlucose).max().orElse(0);
-                long inRange = readings.stream().filter(r -> r.getGlucose() >= 70 && r.getGlucose() <= 180).count();
-                double inRangePct = (inRange * 100.0) / readings.size();
-
-                dataPrompt.append("USER A1C ESTIMATION DATA (last 90 days):\n\n");
-                dataPrompt.append("Average glucose: ").append(String.format("%.1f", avg)).append(" mg/dL\n");
-                dataPrompt.append("Estimated A1C: ").append(String.format("%.1f", estimatedA1c)).append("%\n");
-                dataPrompt.append("Min: ").append(min).append(" mg/dL\n");
-                dataPrompt.append("Max: ").append(max).append(" mg/dL\n");
-                dataPrompt.append("Total readings: ").append(readings.size()).append("\n");
-                dataPrompt.append("Time in range (70-180): ").append(String.format("%.1f", inRangePct)).append("%\n\n");
-                dataPrompt.append("Note: Estimated A1C uses the formula (avg glucose + 46.7) / 28.7. ");
-                dataPrompt.append("This is an approximation and may differ from lab results.\n\n");
-            } else {
-                dataPrompt.append("No glucose readings found for the last 90 days.\n\n");
-            }
-            dataPrompt.append(buildHistoryContext(history, summary));
-            dataPrompt.append("User question: ").append(userQuestion);
-
-            String answer = groqService.call(
-                    "You are a diabetic health assistant. Answer concisely using only the data provided.",
-                    dataPrompt.toString());
-            autoSaveFinding(userQuestion, answer);
-            return Map.of("answer", answer, "updatedSummary", updatedSummary);
-        }
-
-        // Time based OR comparison — unified handler
-        if ("time_based".equals(intent.getType()) || "comparison".equals(intent.getType())) {
-            StringBuilder dataPrompt = new StringBuilder();
-
-            Date[] primaryRange = parseDateRange(intent.getStartDate(), intent.getEndDate());
-            if (primaryRange != null) {
-                List<Glucose> readings = glucoseRepo.findByDateTimeBetween(primaryRange[0], primaryRange[1]);
-                List<FoodLog> foodLogs = foodLogRepo.findByTimestampBetween(
-                        toLocalDateTime(primaryRange[0]), toLocalDateTime(primaryRange[1]));
-
-                String label = "comparison".equals(intent.getType()) ? "PERIOD 1" : "DATA";
-                dataPrompt.append(label).append(" (").append(intent.getStartDate())
-                        .append(" to ").append(intent.getEndDate()).append("):\n");
-                appendStats(dataPrompt, readings, foodLogs);
-            }
-
-            if ("comparison".equals(intent.getType()) && intent.getCompStartDate() != null) {
-                Date[] compRange = parseDateRange(intent.getCompStartDate(), intent.getCompEndDate());
-                if (compRange != null) {
-                    List<Glucose> compReadings = glucoseRepo.findByDateTimeBetween(compRange[0], compRange[1]);
-                    List<FoodLog> compFoodLogs = foodLogRepo.findByTimestampBetween(
-                            toLocalDateTime(compRange[0]), toLocalDateTime(compRange[1]));
-
-                    dataPrompt.append("\nPERIOD 2 (").append(intent.getCompStartDate())
-                            .append(" to ").append(intent.getCompEndDate()).append("):\n");
-                    appendStats(dataPrompt, compReadings, compFoodLogs);
-                }
-            }
-            dataPrompt.append(buildHistoryContext(history, summary));
-            dataPrompt.append("\nUser question: ").append(userQuestion);
-
-            String answer = claudeService.call(buildSystemPrompt(List.of()), dataPrompt.toString());
-            return Map.of("answer", answer, "updatedSummary", updatedSummary);
-        }
-
-        // General fallback
-        List<String> knowledge = List.of();
-        try { knowledge = knowledgeService.search(userQuestion, 5); } catch (Exception e) {}
-        String answer = claudeService.call(
-                buildSystemPrompt(knowledge),
-                buildHistoryContext(history, summary) + "User question: " + userQuestion);
         autoSaveFinding(userQuestion, answer);
         return Map.of("answer", answer, "updatedSummary", updatedSummary);
     }
 
     private String updateSummary(String existingSummary, List<Map<String, String>> history) {
         if (history == null || history.size() < 6) return existingSummary != null ? existingSummary : "";
-        // Oldest exchange = history[0] (user) + history[1] (assistant)
         String oldestExchange = "User: " + history.get(0).get("content") + "\n"
                               + "Assistant: " + history.get(1).get("content");
         String input = (existingSummary == null || existingSummary.isEmpty())
@@ -326,172 +86,19 @@ public class ChatService {
         }
     }
 
-    private Date toDate(LocalDateTime ldt) {
-        return Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
-    }
-
-    private ChatIntent extractIntent(String userQuestion, List<Map<String, String>> history, String summary) {
-        try {
-            String today = LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            String historyContext = buildHistoryContext(history, summary);
-            String json = groqService.call(
-                    "Today's date is " + today + ". " +
-                            "Extract intent from the user's question about their glucose/food data. " +
-                            "Use the conversation history to resolve references like 'that one', 'it', 'the same', etc. "+
-                            "Determine the type: " +
-                            "'food_specific' if asking about a specific food, " +
-                            "'time_based' if asking about a time period, " +
-                            "'comparison' if comparing two time periods, " +
-                            "'time_of_day' if asking about morning/afternoon/evening/night patterns, " +
-                            "'meal_type' if comparing meal types like breakfast vs dinner, " +
-                            "'a1c' if asking about A1C or HbA1c estimation, " +
-                            "'general' if a general health question. " +
-                            "For time_of_day, set timeOfDay to one of: morning, afternoon, evening, night, or 'all' if comparing all. " +
-                            "For meal_type, set mealType to: breakfast, lunch, dinner, snack, or 'all' if comparing all. " +
-                            "For time_based and comparison, calculate actual startDate and endDate in yyyy-MM-dd format. " +
-                            "For comparison, also provide compStartDate and compEndDate for the second period. " +
-                            "Respond ONLY in JSON, no markdown: " +
-                            "{\"type\": \"...\", \"food\": \"...\", \"limit\": 3, " +
-                            "\"startDate\": \"yyyy-MM-dd\", \"endDate\": \"yyyy-MM-dd\", " +
-                            "\"compStartDate\": \"yyyy-MM-dd\", \"compEndDate\": \"yyyy-MM-dd\", " +
-                            "\"mealType\": \"...\", \"timeOfDay\": \"...\"}",
-                    historyContext + "Current question: " + userQuestion
-            );
-            String clean = json.replaceAll("```json|```", "").trim();
-            ObjectMapper mapper = new ObjectMapper();
-            return mapper.readValue(clean, ChatIntent.class);
-        } catch (Exception e) {
-            ChatIntent fallback = new ChatIntent();
-            fallback.setFood("");
-            fallback.setType("general");
-            fallback.setLimit(3);
-            return fallback;
-        }
-    }
-
-    private String buildSystemPrompt(List<String> knowledgeChunks) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("You are a diabetic health assistant with access to multi-signal health data ");
-        sb.append("including glucose readings, heart rate, steps, and sleep from the user's devices.\n\n");
-
-        String multiSignal = esQueryService.getMultiSignalContext(null, null);
-        if (!multiSignal.isEmpty()) {
-            sb.append(multiSignal);
-        }
-
-        if (!knowledgeChunks.isEmpty()) {
-            sb.append("PERSONAL KNOWLEDGE BASE:\n");
-            for (int i = 0; i < knowledgeChunks.size(); i++) {
-                sb.append(i + 1).append(". ").append(knowledgeChunks.get(i)).append("\n");
-            }
-            sb.append("\n");
-        }
-
-        sb.append("RESPONSE RULES:\n");
-        sb.append("- Lead with the key finding immediately, no filler or preamble\n");
-        sb.append("- Use actual numbers from the data (baseline, peak, spike, recovery time)\n");
-        sb.append("- When multi-signal data is available, correlate glucose with heart rate, steps, and sleep\n");
-        sb.append("- When comparing multiple meals, break down EACH meal with its date, time, baseline, peak, spike, and recovery\n");
-        sb.append("- Include dates and times so the user can correlate with their experience\n");
-        sb.append("- Give 1-2 actionable suggestions max, not a generic list\n");
-        sb.append("- If no data is provided, give a short direct answer from general knowledge\n");
-        sb.append("- Use **bold** for key numbers and findings\n");
-        return sb.toString();
-    }
-
-    private String buildDataPrompt(Map<FoodLog, List<Glucose>> glucoseMap, String question,
-                                   List<Map<String, String>> history, String summary) {
-        StringBuilder sb = new StringBuilder();
-
-        if (!glucoseMap.isEmpty()) {
-            sb.append("USER DATA:\n\n");
-            for (Map.Entry<FoodLog, List<Glucose>> entry : glucoseMap.entrySet()) {
-                FoodLog meal = entry.getKey();
-                List<Glucose> readings = entry.getValue();
-
-                sb.append("--- ").append(meal.getTimestamp());
-                sb.append(" (").append(meal.getFoodName());
-                sb.append(", ").append(meal.getPortionSize());
-                if (meal.getSource() != null) sb.append(", ").append(meal.getSource());
-                sb.append(", ").append(meal.getMealType()).append(") ---\n");
-
-                if (meal.getCarbs() != null) sb.append("Carbs: ").append(meal.getCarbs()).append("g ");
-                if (meal.getProtein() != null) sb.append("Protein: ").append(meal.getProtein()).append("g ");
-                if (meal.getFiber() != null) sb.append("Fiber: ").append(meal.getFiber()).append("g");
-                if (meal.getCarbs() != null || meal.getProtein() != null || meal.getFiber() != null) sb.append("\n");
-                if (meal.getNotes() != null && !meal.getNotes().isEmpty()) sb.append("Notes: ").append(meal.getNotes()).append("\n");
-
-                if (!readings.isEmpty()) {
-                    int baseline = readings.get(0).getGlucose();
-                    int peak = readings.stream().mapToInt(Glucose::getGlucose).max().orElse(0);
-                    sb.append("Baseline: ").append(baseline).append(" mg/dL | Peak: ").append(peak);
-                    sb.append(" mg/dL | Spike: ").append(peak - baseline).append("\n");
-                    sb.append("Readings:\n");
-                    for (Glucose r : readings) {
-                        sb.append("  ").append(r.getDateTime()).append(": ").append(r.getGlucose()).append(" mg/dL\n");
-                    }
-                } else {
-                    sb.append("No glucose readings found for this time window.\n");
-                }
-                sb.append("\n");
-            }
-        }
-
-        sb.append(buildHistoryContext(history, summary));
-        sb.append("User question: ").append(question);
-        return sb.toString();
-    }
-
     private void autoSaveFinding(String question, String answer) {
         try {
             String finding = groqService.call(
                     "Summarize the key finding from this Q&A in one short sentence. " +
-                            "Focus on the personal health insight. Respond with ONLY the sentence, nothing else.",
+                    "Focus on the personal health insight. Respond with ONLY the sentence, nothing else.",
                     "Question: " + question + "\nAnswer: " + answer
             );
-            System.out.println("Auto-save finding: " + finding);
             if (finding != null && finding.length() > 10) {
                 KnowledgeDocument saved = knowledgeService.save(finding.trim(), "auto_insight", "chat_history");
                 System.out.println("Saved to knowledge_base: " + saved.getId());
             }
         } catch (Exception e) {
             System.out.println("Auto-save failed: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    private LocalDateTime toLocalDateTime(Date date) {
-        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
-    }
-
-    private void appendStats(StringBuilder sb, List<Glucose> readings, List<FoodLog> meals) {
-        if (!readings.isEmpty()) {
-            int min = readings.stream().mapToInt(Glucose::getGlucose).min().orElse(0);
-            int max = readings.stream().mapToInt(Glucose::getGlucose).max().orElse(0);
-            double avg = readings.stream().mapToInt(Glucose::getGlucose).average().orElse(0);
-            sb.append("Average: ").append(String.format("%.1f", avg)).append(" mg/dL\n");
-            sb.append("Min: ").append(min).append(" mg/dL\n");
-            sb.append("Max: ").append(max).append(" mg/dL\n");
-            sb.append("Total readings: ").append(readings.size()).append("\n");
-        } else {
-            sb.append("No readings found.\n");
-        }
-        sb.append("Meals logged: ").append(meals.size()).append("\n");
-        for (FoodLog meal : meals) {
-            sb.append("- ").append(meal.getFoodName())
-                    .append(" (").append(meal.getMealType()).append(")\n");
-        }
-    }
-
-    private Date[] parseDateRange(String startStr, String endStr) {
-        try {
-            if (startStr == null || endStr == null) return null;
-            java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd");
-            LocalDateTime start = java.time.LocalDate.parse(startStr, fmt).atStartOfDay();
-            LocalDateTime end = java.time.LocalDate.parse(endStr, fmt).atTime(23, 59, 59);
-            return new Date[]{ toDate(start), toDate(end) };
-        } catch (Exception e) {
-            return null;
         }
     }
 
@@ -502,11 +109,9 @@ public class ChatService {
         if (!hasSummary && !hasHistory) return "";
 
         StringBuilder sb = new StringBuilder();
-
         if (hasSummary) {
             sb.append("CONVERSATION SUMMARY:\n").append(summary).append("\n\n");
         }
-
         if (hasHistory) {
             sb.append(hasSummary ? "RECENT CONVERSATION:\n" : "CONVERSATION HISTORY:\n");
             for (int i = 0; i < history.size() - 1; i++) {
@@ -517,7 +122,6 @@ public class ChatService {
             }
             sb.append("\n");
         }
-
         return sb.toString();
     }
 }
